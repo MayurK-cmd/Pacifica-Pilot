@@ -1,22 +1,12 @@
 {
-  "BTC": {
+  "WIF": {
     "side": "ask",
-    "size": 0.00036,
-    "entry_price": 69076.0,
+    "size": 215.0,
+    "entry_price": 0.1737,
     "unrealized_pnl": 0.0,
     "mark_price": 0.0,
     "trailing_high": null,
-    "trailing_low": 69086.36,
-    "entry_time": 1775447135.658664
-  },
-  "WIF": {
-    "side": "bid",
-    "size": 213.0,
-    "entry_price": 0.17615,
-    "unrealized_pnl": 0.0,
-    "mark_price": 0.0,
-    "trailing_high": 0.18535,
-    "trailing_low": null,
-    "entry_time": 1775140352.2853465
+    "trailing_low": 0.173784,
+    "entry_time": 1781533549.893874
   }
 }
