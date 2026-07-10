@@ -1,511 +1,354 @@
-# PacificaPilot 🤖
+# PacificaPilot 🤖⚡
 
-> **An autonomous AI trading agent for Pacifica Perpetual Futures — powered by Gemini AI, Elfa social intelligence, and a non-custodial security model.**
+**Terminal-native AI trading agent for Pacifica Perpetual Futures — with persistent memory, multi-provider AI, and natural language trading.**
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-green.svg)](https://python.org)
-[![Node](https://img.shields.io/badge/node-18+-green.svg)](https://nodejs.org)
-[![React](https://img.shields.io/badge/react-19-blue.svg)](https://react.dev)
-[![Track](https://img.shields.io/badge/track-Trading%20Applications%20%26%20Bots-orange.svg)]()
-[![Hackathon](https://img.shields.io/badge/Pacifica-Hackathon%202026-purple.svg)]()
+[![Status](https://img.shields.io/badge/status-active--development-brightgreen.svg)]()
 
-**🏆 Pacifica Hackathon Submission** — Trading Applications & Bots · Most Innovative Use of Pacifica
+PacificaPilot is an **autonomous AI trading agent** that runs entirely on your machine. It combines on-chain perpetual futures trading with multi-provider AI reasoning, technical analysis (RSI, MACD, Bollinger Bands), social sentiment, and **persistent memory via Supermemory** — so your agent actually learns from every trade and remembers your preferences across sessions.
 
 ---
 
-## 🎥 Demo
-
-| Resource | Link |
-|----------|------|
-| **Demo Video** | [https://youtu.be/LT4O4Zh5wqg](https://youtu.be/LT4O4Zh5wqg) |
-| **Pacifica Testnet** | [test-app.pacifica.fi](https://test-app.pacifica.fi) |
-
----
-
-## The Problem
-
-Most retail traders on perpetual futures DEXs are at a systematic disadvantage — they lack the tooling to monitor funding rates, process social signals, and execute decisions at the speed institutions can. Existing bots are either too complex to set up, require handing over your private keys to a third party, or make decisions based on price data alone.
-
-**PacificaPilot solves this.** It is a fully autonomous, non-custodial trading agent that combines on-chain market data, AI reasoning, and real-time social sentiment to trade Pacifica perpetuals on your behalf — while your private keys never leave your machine.
-
----
-
-## What It Does
-
-PacificaPilot runs a continuous decision loop for each symbol you configure:
-
-1. **Fetches live market data** from Pacifica — mark price, RSI, funding rate, basis spread
-2. **Pulls social sentiment** from Elfa AI — token mention counts, engagement scores, trending rank
-3. **Sends everything to Gemini 2.5 Flash** — the AI reasons across all signals and returns LONG / SHORT / HOLD with a confidence score and written reasoning
-4. **Executes the trade** on Pacifica if confidence clears your threshold
-5. **Monitors open positions** with trailing stop-loss and take-profit, closes when triggered, logs realized PnL
-6. **Streams all activity** to a live React dashboard — every decision, every trade, every log line, in real time
-
----
-
-## Why It's Different
-
-| Feature | PacificaPilot | Typical Trading Bot |
-|---------|--------------|---------------------|
-| AI Reasoning Engine | ✅ Gemini 2.5 Flash | ❌ Rule-based only |
-| Social Sentiment Layer | ✅ Elfa AI integration | ❌ Price data only |
-| Non-custodial by design | ✅ Keys never leave your machine | ❌ Often requires key upload |
-| Live PnL Dashboard | ✅ Real-time unrealized + realized PnL | ❌ Terminal output or none |
-| Sponsor Tool Depth | ✅ Pacifica + Elfa + Privy | — |
-| Dry Run / Paper Mode | ✅ Default ON | ⚠️ Rarely included |
-| Resilient Fallback | ✅ Binance kline circuit breaker | ❌ Fails silently |
-
----
-
-## Sponsor Tools Used
-
-| Sponsor | Integration |
-|---------|------------|
-| **Pacifica** | Core DEX — all market data fetching, order placement, and position management via the Pacifica REST + WebSocket API |
-| **Elfa AI** | Social intelligence — token mention counts, engagement scores, and trending rank fed directly into the Gemini AI prompt |
-| **Privy** | Wallet-based auth — users connect their Ethereum wallet; all dashboard routes are JWT-protected via Privy server SDK |
-
----
-
-## Architecture
-
-PacificaPilot runs **entirely on your local machine** — frontend, backend, and agent all local. Your Pacifica private key is used locally to sign transactions and is never transmitted anywhere.
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│                   YOUR MACHINE  (All Components)             │
-│                                                              │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │                   AGENT  (Python)                      │  │
-│  │  • Runs the trading loop 24/7                          │  │
-│  │  • Signs transactions locally                          │  │
-│  │  • Private key never transmitted                       │  │
-│  └──────────────────────┬───────────────────────────────  │  │
-│                         │  HTTPS localhost:3001            │  │
-│  ┌──────────────────────▼─────────────────────────────┐   │  │
-│  │           BACKEND  (Express — localhost:3001)       │   │  │
-│  │           Config + Auth + Trade Logs               │   │  │
-│  └──────────────────────┬───────────────────────────── │   │  │
-│                         │  localhost:5173               │  │  │
-│  ┌──────────────────────▼─────────────────────────────┐ │  │  │
-│  │           FRONTEND  (Vite — localhost:5173)         │ │  │  │
-│  │           Dashboard UI + PnL View                  │ │  │  │
-│  └─────────────────────────────────────────────────────┘ │  │  │
-└──────────────────────────────────────────────────────────────┘
-                          │
-                   MongoDB Atlas
-                   (cloud DB only)
-```
-
-| Component | Where It Runs | Notes |
-|-----------|--------------|-------|
-| Frontend (Vite) | Your machine — localhost:5173 | Dashboard UI |
-| Backend (Express) | Your machine — localhost:3001 | API + Auth |
-| Agent (Python) | Your machine | Trading logic + keys |
-| MongoDB | Atlas (cloud DB) | Config + trade history only |
-
----
-
-## Features
-
-### 🧠 AI Decision Engine
-- Gemini 2.5 Flash receives RSI (5m + 1h), funding rate, basis spread vs Binance, and Elfa sentiment in a single structured prompt
-- Returns: direction (LONG / SHORT / HOLD), confidence (0–100%), position size (25/50/75/100%), and 2–3 sentence written reasoning
-- Rule-based fallback activates automatically if the Gemini call fails — no silent failures
-
-### 📊 Live PnL Dashboard (4 tabs)
-- **Portfolio** — open positions, collateral balances, unrealized PnL per trade updated in real time
-- **Decisions** — every AI decision logged with full reasoning, confidence score, and outcome
-- **Logs** — live Server-Sent Events (SSE) stream of all agent activity with text filtering
-- **Config** — edit all trading parameters from the browser; agent picks up changes on next cycle without restart
-
-### 🔒 Non-Custodial Security
-- Private keys stored only in your local `agent/.env` and used only to sign transactions on your machine
-- Backend stores no private keys; AES-256-CBC encryption applied only if you optionally save API keys via the dashboard
-- Agent authenticates to the backend via a shared `x-agent-key` secret over HTTPS
-
-### ⚙️ Risk Management
-- Trailing stop-loss with high-water mark tracking to lock in profits automatically
-- Hard position size cap (configurable, default $50 USDC)
-- Minimum AI confidence gate — no trade placed below your threshold
-- Dry run mode ON by default — zero real orders until you explicitly disable it
-- Circuit breaker: auto-fallback to Binance klines if Pacifica data API is unavailable
-
-### 🔄 Multi-Symbol Parallel Execution
-- Independent decision loops per symbol (BTC, ETH, SOL, and more)
-- Each symbol has its own position state, trailing stop tracker, and cycle timer
-- State persists across agent restarts via `positions.json`
-
----
-
-## Tech Stack
-
-### Frontend
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| React | 19.x | UI framework |
-| Vite | 8.x | Build tool |
-| Privy | 3.x | Web3 authentication |
-| React Router | 7.x | Client-side routing |
-| Framer Motion | 12.x | Animations |
-| Tailwind CSS | 4.x | Styling |
-
-### Backend
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| Node.js | 18+ | Runtime |
-| Express | 5.x | REST API server |
-| MongoDB Atlas + Mongoose | 9.x | Database + ODM |
-| Privy Server Auth | 1.x | JWT verification |
-| AES-256-CBC | — | Key encryption at rest |
-
-### Trading Agent
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| Python | 3.11+ | Runtime |
-| google-generativeai | 1.0+ | Gemini AI integration |
-| solders | 0.18+ | Solana keypair + signing |
-| requests | 2.31+ | HTTP client |
-| websockets | 12.0+ | Pacifica WebSocket feed |
-| python-dotenv | 1.0+ | Environment config |
-
-### External APIs
-| Service | Purpose |
-|---------|---------|
-| **Pacifica** | Perpetual futures DEX — trading, market data, positions |
-| **Elfa AI** | Social sentiment — Twitter/X mentions and engagement |
-| **Google Gemini 2.5 Flash** | AI trading decisions |
-| **Privy** | Wallet authentication |
-| **Binance** | Fallback kline data |
-
----
-
-## Getting Started
-
-### Prerequisites
-- [Pacifica Testnet account](https://test-app.pacifica.fi) — use code `Pacifica`
-- [Google Gemini API key](https://aistudio.google.com/app/apikey)
-- [Elfa AI API key](https://elfa.ai) *(optional but strongly recommended)*
-- [Privy account](https://privy.io) — free tier works
-- [MongoDB Atlas account](https://mongodb.com/atlas) — free M0 cluster is sufficient
-- Node.js 18+ and Python 3.11+
-
-### 1. Clone
+## 🚀 Quick Demo
 
 ```bash
-git clone https://github.com/MayurK-cmd/Pacifica-Trading-Bot.git
-cd Pacifica-Trading-Bot
+# Install
+pip install pacificapilot
+
+# Setup once
+pacifica init
+
+# Launch
+pacifica start
 ```
 
-### 2. Install Dependencies
+```
+You:  "how are BTC markets right now should I go long or short?"
+Agent:
+  📊 BTC — $63,996
+  Regime: Weak uptrend (MACD bullish, histogram stable)
+  RSI 5m: 35 (leaning oversold) | RSI 1h: 51 (neutral)
+  Bollinger: Upper half, bandwidth 4.2%
+  Funding: 0.000013 (neutral)
+  Volume: 1.8x average (high — confirms the move)
+  → **NEUTRAL with slight bullish bias.** Room to move up but no clear entry yet.
+```
+
+---
+
+## ✨ Features
+
+### 🧠 Autonomous Loop Agent
+Runs on a configurable timer, fetches live market data, and makes AI-driven trading decisions — all without human intervention.
+
+- **Market analysis** — Real-time RSI 5m/1h, MACD trend, Bollinger Bands, volume, funding rates, basis spreads
+- **AI decision engine** — Supports Anthropic, OpenAI, Google Gemini, and OpenRouter
+- **Risk management** — Position sizing, stop-loss, take-profit, Kelly Criterion, trailing stops
+- **Social sentiment** — Elfa AI integration for crowd sentiment signals
+- **On-chain memos** — Every decision logged on Solana
+
+### 💬 Chat Agent (Agentic Tool Loop)
+Natural language interface with true **tool-calling capability** — the AI can chain multiple tools, gather data, and reason before responding, just like Claude Code.
+
+| What you say | What happens |
+|---|---|
+| "open a $50 long on WIF" | Places order with confirmation prompt |
+| "close all my positions" | Batch closes every open position |
+| "how are BTC markets?" | Fetches full snapshot (price, RSI, MACD, Bollinger, volume, regime) |
+| "what's my performance?" | Returns win rate, Sharpe, PnL, best/worst symbol |
+| "never trade BONK" | Saves preference to persistent memory |
+| "what did I trade last week?" | Recalls from Supermemory |
+
+**9 tools available:**
+`place_order` · `close_position` · `close_all_positions` · `get_positions` · `get_account_balance` · `get_market_price` (enriched) · `get_trade_history` · `get_performance_metrics` · `get_market_regime`
+
+### 🧠 Persistent Memory (Supermemory)
+Every trade decision, market observation, and user preference is stored in a searchable memory layer that survives restarts.
+
+- **Decisions** — Every LONG/SHORT/HOLD with confidence, reasoning, and signals
+- **Patterns** — Funding spikes, RSI extremes, basis divergences automatically detected
+- **Preferences** — "never trade SOL", "max position $200" — remembered forever
+- **Performance** — Daily summaries, win rates, best/worst symbols
+- **Cross-session** — Exit the CLI, come back tomorrow, the agent remembers everything
+
+### 🔐 Security
+- **Non-custodial** — Your keys never leave your machine
+- **BYOK (Bring Your Own Key)** — Use your own AI provider keys
+- **Confirmation prompts** — Every trade requires explicit yes/no
+- **Dry run mode** — Paper trade by default, flip to live when ready
+- **Testnet first** — All new setups start on Pacifica testnet
+
+---
+
+## 🏗 Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   YOUR MACHINE (all local)              │
+│                                                         │
+│  ┌──────────────┐    ┌──────────────┐                   │
+│  │  Chat Agent  │    │  Loop Agent  │                   │
+│  │ (tool loop)  │    │ (autonomous) │                   │
+│  └──────┬───────┘    └──────┬───────┘                   │
+│         │                   │                            │
+│         └──────┬────────────┘                            │
+│                │                                         │
+│        ┌───────▼────────┐                                │
+│        │  Trading Core  │                                │
+│        │ (shared logic) │                                │
+│        └───────┬────────┘                                │
+│                │                                         │
+│  ┌─────────────▼─────────────┐  ┌──────────────────────┐ │
+│  │  Supermemory (persistent  │  │  Config & Secrets    │ │
+│  │  memory across sessions)  │  │  ~/.pacificapilot/   │ │
+│  └───────────────────────────┘  └──────────────────────┘ │
+└──────────────────────────┬──────────────────────────────┘
+                           │
+                    ┌──────▼──────┐
+                    │ Pacifica API│
+                    │ (REST)      │
+                    └─────────────┘
+```
+
+### Project Structure
+
+```
+pacificapilot/
+├── agents/           # Chat Agent (tool-calling loop) + Loop Agent (autonomous)
+├── core/             # Trading execution, market data, risk, analytics
+├── providers/        # AI provider adapters (Anthropic, OpenAI, Gemini, OpenRouter)
+├── memory/           # Supermemory wrapper for persistent cross-session memory
+├── storage/          # Config JSON, secrets, SQLite trade history
+├── telegram/         # Optional Telegram bot integration
+├── memo/             # On-chain decision logging (Solana)
+├── ui/               # Rich REPL with autocomplete + command system
+├── sentiment.py      # Elfa AI social sentiment integration
+├── orchestrator.py   # Multi-agent coordinator
+├── cli.py            # CLI entry point
+└── setup.py          # First-run wizard
+```
+
+---
+
+## 🛠 Installation
 
 ```bash
-cd backend && npm install
-cd ../frontend && npm install
-cd ../agent && pip install -r requirements.txt
+# Via pipx (recommended — isolated environment)
+pipx install pacificapilot
+
+# Or pip
+pip install pacificapilot
+
+# For development
+git clone https://github.com/yourusername/pacificapilot.git
+cd pacificapilot
+pip install -e ".[dev,telegram,memory]"
 ```
 
-### 3. Configure Environment Files
-
-**`backend/.env`**
-```env
-MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/pacifica-pilot
-PRIVY_APP_ID=<your_privy_app_id>
-PRIVY_APP_SECRET=<your_privy_app_secret>
-ENCRYPTION_SECRET=<random_32_char_hex>
-AGENT_API_SECRET=<secure_random_string>
-```
-
-**`frontend/.env`**
-```env
-VITE_API_URL=http://localhost:3001
-VITE_PRIVY_APP_ID=<your_privy_app_id>
-```
-
-**`agent/.env`**
-```env
-BACKEND_URL=http://localhost:3001
-AGENT_API_SECRET=<same_as_backend>
-
-PACIFICA_BASE_URL=https://test-api.pacifica.fi/api/v1
-PACIFICA_WS_URL=wss://test-ws.pacifica.fi/ws
-PACIFICA_PRIVATE_KEY=<your_base58_private_key>
-PACIFICA_AGENT_PRIVATE_KEY=<agent_wallet_secret>
-PACIFICA_AGENT_PUBLIC_KEY=<agent_api_key>
-
-GEMINI_API_KEY=<your_gemini_key>
-ELFA_API_KEY=<your_elfa_key>
-
-DRY_RUN=true
-```
-
-### 4. Run
+### First-Run Setup
 
 ```bash
-# Terminal 1 — Backend
-cd backend && npm start          # → http://localhost:3001
-
-# Terminal 2 — Frontend
-cd frontend && npm run dev       # → http://localhost:5173
-
-# Terminal 3 — Agent (must run locally; your private key stays on your machine)
-cd agent && python main.py
+pacifica init
 ```
 
-Open `http://localhost:5173`, connect your wallet, configure your parameters, and watch the agent trade.
+The wizard collects:
+1. Pacifica public/private keys (Solana keypair)
+2. AI provider choice and API key
+3. Trading parameters (symbols, position limits, confidence threshold)
+4. Optional: Supermemory API key for persistent memory
 
 ---
 
-## Trading Logic
+## 🎮 Usage
 
-### Decision Cycle (per symbol, every 5 min by default)
+### Start the REPL
 
-```
-FETCH market data  (Pacifica)
-  └─► FETCH sentiment  (Elfa AI)
-        └─► PROMPT Gemini 2.5 Flash with all signals
-              └─► IF confidence > threshold AND no open position
-                    └─► PLACE market order  (Pacifica)
-                          └─► TRACK with trailing stop-loss
-                                └─► CLOSE on SL/TP hit → LOG realized PnL
+```bash
+pacifica start
 ```
 
-### Signal Reference
+This opens the interactive terminal — the Loop Agent does **not** auto-start. You control it with `/start` and `/stop`.
 
-| Signal | Source | Bullish | Bearish |
-|--------|--------|---------|---------|
-| RSI-14 (1h) | Pacifica / Binance fallback | < 35 (oversold) | > 65 (overbought) |
-| RSI-14 (5m) | Pacifica / Binance fallback | < 35 | > 65 |
-| Funding Rate | Pacifica | Negative (shorts pay longs) | Positive (longs pay shorts) |
-| Basis Spread | Pacifica vs Binance | Pacifica < Binance | > 2% premium flag |
-| Social Engagement | Elfa AI | High score + trending | Low / falling score |
+### Commands
 
-### Risk Profiles
+| Command | What it does |
+|---|---|
+| `/start` | Boot the autonomous Loop Agent in background |
+| `/stop` | Stop the Loop Agent |
+| `/pause` | Soft-pause the loop (process stays alive) |
+| `/resume` | Un-pause the loop |
+| `/config` | View/edit trading parameters |
+| `/apikey` | Manage AI provider and Supermemory keys |
+| `/mode` | Switch testnet / mainnet |
+| `/status` | Account equity, positions, agent status |
+| `/positions` | List open perpetual positions |
+| `/history` | Recent trades and decisions |
+| `/performance` | Sharpe, drawdown, win rate metrics |
+| `/analytics` | Monthly returns, per-symbol breakdown |
+| `/backtest` | Run backtest on historical data |
+| `/portfolio` | Portfolio risk metrics + correlation |
+| `/account` | Account stats from Pacifica |
+| `/remote` | Telegram remote mode |
+| `/help` | Show all commands |
 
-| Profile | Stop Loss | Take Profit | Min Confidence |
-|---------|-----------|-------------|----------------|
-| Conservative | 2% | 4% | 75% |
-| Balanced (default) | 3% | 6% | 60% |
-| Aggressive | 5% | 10% | 45% |
+### Natural Language Trading
 
----
-
-## Pacifica API Integration
-
-### Endpoints Used
-
-| Endpoint | Purpose |
-|----------|---------|
-| `POST /order/create_market` | Execute LONG / SHORT trades |
-| `GET /api/v1/info/prices` | Real-time mark prices |
-| `GET /api/v1/position` | Fetch open positions |
-| `GET /api/v1/balance` | Account balance and equity |
-| `GET /api/v1/trades` | Trade history |
-| `GET /api/v1/funding` | Funding rate data |
-| `GET /api/v1/orderbook` | Order book depth |
-
-**Authentication:** Ed25519-signed requests using Pacifica API keypair.
-
----
-
-## Configuration Reference
-
-All parameters are editable live from the **Config tab** — no agent restart needed.
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| Symbols | BTC, ETH | Comma-separated trading pairs |
-| Loop Interval | 300s | Seconds between decision cycles |
-| Max Position | $50 USDC | Hard cap per trade |
-| Min Confidence | 60% | AI confidence gate |
-| Stop Loss | 3% | Trailing stop distance |
-| Take Profit | 6% | Exit target |
-| Risk Level | Balanced | conservative / balanced / aggressive |
-| Dry Run | true | Paper trade with real market data |
-| Binance Fallback | true | Use Binance klines if Pacifica unavailable |
-
----
-
-## API Reference
-
-### User Routes (JWT via Privy)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/sync` | Register / sync wallet user |
-| POST | `/api/auth/keys` | Save encrypted Pacifica keys |
-| GET | `/api/auth/me` | Get user profile |
-| GET | `/api/config` | Fetch trading config |
-| POST | `/api/config` | Update trading config |
-| GET | `/api/trades` | Full trade history |
-| GET | `/api/trades/stats` | Aggregated PnL stats |
-| GET | `/api/portfolio` | Portfolio balances + open positions |
-
-### Agent Routes (`x-agent-key` header)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/agent/config` | Pull current config |
-| POST | `/api/agent/heartbeat` | Send liveness ping |
-| POST | `/api/agent/toggle` | Enable / disable agent |
-| POST | `/api/trades` | Log executed trade + PnL |
-| POST | `/api/logs` | Push log entry |
-
-### Public Routes
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/agent/status` | Agent online / offline status |
-| GET | `/api/logs` | Recent log entries |
-| GET | `/api/logs/stream` | SSE live log stream |
-
----
-
-## Database Schema
-
-### Users Collection
-```javascript
-{
-  _id: ObjectId,
-  privyUserId: String,            // unique
-  email: String,
-  walletAddress: String,          // Ethereum wallet from Privy
-  pacificaAddress: String,        // Solana wallet pubkey
-  pacificaPrivateKey: String,     // AES-256 encrypted
-  pacificaApiKey: String,         // AES-256 encrypted
-  onboarded: Boolean,
-  createdAt: Date,
-  updatedAt: Date
-}
 ```
-
-### Config Collection
-```javascript
-{
-  _id: ObjectId,
-  userId: ObjectId,               // ref: User (unique)
-  symbols: [String],              // e.g. ["BTC", "ETH"]
-  loopIntervalSeconds: Number,    // default: 300
-  maxPositionUsdc: Number,        // default: 50
-  minConfidence: Number,          // default: 0.6
-  stopLossPct: Number,            // default: 3.0
-  takeProfitPct: Number,          // default: 6.0
-  dryRun: Boolean,                // default: true
-  enabled: Boolean,               // default: false
-  createdAt: Date,
-  updatedAt: Date
-}
-```
-
-### Trades Collection
-```javascript
-{
-  _id: ObjectId,
-  userId: ObjectId,               // ref: User
-  symbol: String,
-  action: String,                 // LONG / SHORT / HOLD / EXIT
-  confidence: Number,
-  reasoning: String,
-  size_pct: Number,
-  pnl_usdc: Number,
-  createdAt: Date
-}
+You: open a $50 long on WIF
+You: what's my balance?
+You: close my ETH position
+You: how are the markets for BTC?
+You: what was my best trade ever?
+You: I never want to trade BONK
 ```
 
 ---
 
-## Security Model
+## 🔌 AI Providers
 
-| Asset | Where It Lives | Protection |
-|-------|---------------|------------|
-| Pacifica private key | Your local `agent/.env` | Never transmitted |
-| Pacifica agent key | Your local `agent/.env` | Never transmitted |
-| User wallet | Browser (Privy-managed) | Privy handles custody |
-| Optional stored API keys | MongoDB Atlas | AES-256-CBC encrypted |
-| Agent ↔ Backend | `x-agent-key` over HTTPS | Shared secret |
-| User ↔ Backend | JWT | Signed by Privy wallet |
+| Provider | Models | Best For |
+|----------|--------|----------|
+| **OpenRouter** | All models via one API | Recommended default |
+| **Anthropic** | Claude 3.5/4 Sonnet, Haiku, Opus | Best reasoning & tool use |
+| **OpenAI** | GPT-4o, GPT-4o-mini | Fast, cost-effective |
+| **Google Gemini** | Gemini 2.0 Flash, 1.5 Pro | Free tier available |
+
+Configure with `/apikey <provider> <key>`.
 
 ---
 
-## Project Structure
+## 🧠 Supermemory Integration
 
+PacificaPilot is one of the first trading agents to integrate [Supermemory](https://app.supermemory.ai) for persistent, searchable memory across sessions.
+
+**What gets remembered:**
+- Every trade decision (direction, confidence, reasoning, signals)
+- Every position close (PnL, entry/exit, duration, win/loss)
+- Market patterns (funding spikes, RSI extremes, basis divergences)
+- User preferences and config changes
+- Daily performance summaries
+- Provider errors and fallback activations
+
+**How it's used:**
+- **Session start** — Your full profile is injected into the AI's system prompt
+- **Natural questions** — "what did I trade last week?" triggers semantic recall
+- **Preferences** — "never trade SOL" is remembered forever
+
+Get a free key at [app.supermemory.ai](https://app.supermemory.ai) and run:
 ```
-pacifica-pilot/
-├── agent/                    # Python trading agent
-│   ├── main.py              # Main loop (entry point)
-│   ├── executor.py          # Order execution
-│   ├── market.py            # Market data + RSI
-│   ├── sentiment.py         # Elfa AI sentiment
-│   ├── strategy.py          # Gemini AI decisions
-│   └── logger.py            # Log streaming
-│
-├── backend/                  # Node.js Express API
-│   ├── index.js             # Server entry point
-│   ├── models/              # Mongoose schemas
-│   ├── routes/              # API endpoints
-│   └── middleware/          # Auth + encryption
-│
-├── frontend/                 # React + Vite
-│   ├── src/
-│   │   ├── App.jsx          # Main app
-│   │   ├── Dashboard.jsx    # 4-tab dashboard
-│   │   ├── LoginPage.jsx    # Privy login
-│   │   ├── Onboarding.jsx   # Pacifica key setup
-│   │   └── tabs/            # Portfolio, Config, Decisions, Logs
-│   └── vercel.json          # Vercel config
-│
-├── requirements.txt          # Python dependencies
-└── README.md
+/apikey supermemory sm_your_key_here
 ```
 
 ---
 
-## Troubleshooting
+## 📊 Supported Markets
 
-| Issue | Fix |
-|-------|-----|
-| Agent shows Offline | Toggle "Enabled" ON in the Config tab |
-| Agent won't connect | Verify `BACKEND_URL=http://localhost:3001` and `AGENT_API_SECRET` match on both sides |
-| No market data | Check Pacifica keys; enable Binance fallback in Config |
-| Login fails | Verify Privy App ID / Secret; check MongoDB connection |
-| PnL not updating | Confirm agent is running and heartbeating; check the Logs tab |
-| Circuit breaker active | Pacifica API degraded; Binance fallback takes over automatically |
-| Frontend can't reach backend | Ensure backend is on `:3001` and `VITE_API_URL=http://localhost:3001` in frontend `.env` |
+Pacifica offers perpetual futures on a wide range of assets:
 
-Enable verbose agent logging:
-```python
-# agent/main.py
-DEBUG = True
+**Major:** BTC, ETH, SOL
+**Alt:** WIF, BONK, DOGE, PEPE, and many more
+
+All available through the [Pacifica API](https://docs.pacifica.fi).
+
+---
+
+## ⚙️ Configuration
+
+All stored in `~/.pacificapilot/`:
+
+| File | What it stores |
+|---|---|
+| `config.json` | Trading parameters, AI models, risk settings |
+| `secrets.env` | API keys and private keys (chmod 600) |
+| `trades.json` | Trade history |
+| `decisions.json` | AI decision log |
+| `positions.json` | Current position state |
+
+### Key Settings
+
+| Setting | Default | Description |
+|---|---|---|
+| `symbols` | `["BTC", "ETH"]` | Markets to trade |
+| `max_position_usdc` | `100.0` | Max USDC per position |
+| `min_confidence` | `0.6` | Min AI confidence to trade |
+| `stop_loss_pct` | `5.0` | Stop loss |
+| `take_profit_pct` | `10.0` | Take profit |
+| `risk_profile` | `balanced` | conservative / balanced / aggressive |
+| `dry_run` | `True` | Paper trading by default |
+| `use_kelly_criterion` | `False` | Kelly position sizing |
+
+---
+
+## 🔧 Development
+
+```bash
+# Setup
+git clone https://github.com/yourusername/pacificapilot.git
+cd pacificapilot
+pip install -e ".[dev,telegram,memory]"
+
+# Run tests
+python -m pytest tests/unit
+
+# Run full test suite
+python -m pytest tests/
 ```
 
 ---
 
-## Contributing
+## ☁️ Supermemory
 
-1. Fork the repo
-2. `git checkout -b feature/your-feature`
-3. `git commit -am 'Add feature'`
-4. `git push origin feature/your-feature`
-5. Open a Pull Request
+**What it is:** A memory engine that persists trading knowledge across sessions. Every trade decision, market pattern, user preference, and performance summary is stored and searchable.
 
----
+**Why it matters:** The agent learns over time — it doesn't start from zero every session. It remembers your preferences, past trades, and market observations.
 
-## License
-
-MIT — see [LICENSE](LICENSE)
+**How to use it:**
+1. Get a free key at [app.supermemory.ai](https://app.supermemory.ai)
+2. Run `pacifica init` and enter the key at the prompt
+3. Or inside the REPL: `/apikey supermemory sm_your_key`
+4. The agent starts remembering everything automatically
 
 ---
 
-## Acknowledgements
+## 🧪 Agentic Tool Loop
 
-Built during the [Pacifica Hackathon 2026](https://pacifica.gitbook.io/docs/hackathon/pacifica-hackathon).
+Unlike traditional chat bots that make one API call and respond, PacificaPilot uses a **multi-turn agentic loop**:
 
-| Tool | Role |
-|------|------|
-| [Pacifica](https://pacifica.fi) | Perpetuals DEX + API |
-| [Elfa AI](https://elfa.ai) | Social sentiment intelligence |
-| [Privy](https://privy.io) | Wallet authentication |
-| [Google Gemini](https://ai.google.dev) | AI reasoning engine |
+1. User asks a question
+2. AI decides which tool(s) to call
+3. Tools are executed, results fed back to the AI
+4. AI can call more tools or produce a final answer
+5. Loop repeats up to 8 iterations
+
+This means the AI can:
+- Fetch market data, THEN analyze it, THEN give a recommendation
+- Check positions, THEN calculate performance, THEN summarize
+- Gather multiple data points before responding
 
 ---
 
-## Disclaimer
+## 🔐 Security Model
 
-Trading perpetual futures involves substantial risk, including potential loss of your entire position. Always run in **dry run mode** first and verify behaviour before switching to live trading. Past strategy performance does not guarantee future results. You are solely responsible for your trading decisions.
+- **Non-custodial**: Keys on your machine, nowhere else
+- **BYOK**: Your AI keys go directly to your provider
+- **Confirmation**: Every trade action requires explicit user yes/no
+- **Dry run**: All trades simulated by default
+- **Testnet first**: New setups start on testnet with no real money
+- **Restricted perms**: Secrets file at `~/.pacificapilot/secrets.env` with `chmod 600`
+
+---
+
+## 📝 License
+
+MIT License — see [LICENSE](LICENSE) for details.
+
+**Disclaimer:** PacificaPilot is experimental software for educational and research purposes. Trading perpetual futures carries significant risk of loss. AI decisions are not financial advice. Past performance does not guarantee future results. You are responsible for all trades executed by the agent. Start with testnet and small positions. Never risk more than you can afford to lose.
+
+---
+
+## 🤝 Contributing
+
+PRs welcome! Check the [issues](https://github.com/yourusername/pacificapilot/issues) for good first issues.
+
+Built for the [Supermemory](https://supermemory.ai) hackathon (July 2025) and [Pacifica](https://pacifica.fi) ecosystem.

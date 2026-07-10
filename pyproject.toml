@@ -1,0 +1,70 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pacificapilot"
+version = "0.1.0"
+description = "Terminal-native, non-custodial AI trading agent for Pacifica Perpetual Futures"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "PacificaPilot Team"}
+]
+keywords = ["trading", "ai", "pacifica", "solana", "perpetual-futures"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "requests>=2.31.0",
+    "solders>=0.21.0",
+    "base58>=2.1.1",
+    "anthropic>=0.25.0",
+    "openai>=1.30.0",
+    "google-generativeai>=0.5.0",
+    "prompt-toolkit>=3.0.43",
+    "rich>=13.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-randomly>=3.15.0",
+    "responses>=0.24.0",
+    "hypothesis>=6.92.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+telegram = [
+    "python-telegram-bot>=20.0",
+]
+memory = [
+    "supermemory>=3.50.0",
+]
+
+[project.scripts]
+pacifica = "pacificapilot.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/yourusername/pacificapilot"
+Documentation = "https://github.com/yourusername/pacificapilot#readme"
+Repository = "https://github.com/yourusername/pacificapilot"
+
+[tool.setuptools]
+packages = ["pacificapilot", "pacificapilot.core", "pacificapilot.storage", "pacificapilot.providers", "pacificapilot.agents", "pacificapilot.telegram", "pacificapilot.memo", "pacificapilot.ui", "pacificapilot.memory"]
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
