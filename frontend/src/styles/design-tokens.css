@@ -1,0 +1,47 @@
+:root {
+  /* ── Brand & Accent ── */
+  --primary: #e91d2a;
+  --on-primary: #ffffff;
+  --accent-blue: #5b9fff;
+  --link: #0000ee;
+
+  /* ── Surface ── */
+  --canvas: #ffffff;
+  --frame-ink: #000000;
+  --ink: #000000;
+  --ink-muted: #444444;
+
+  /* ── Ribbon-card tint family ── */
+  --tint-olive: #8e8a25;
+  --tint-sage: #b3bd95;
+  --tint-salmon: #d77a7a;
+  --tint-peach: #e6915d;
+  --tint-lime: #c0d4a7;
+  --tint-sky: #9ab6c8;
+  --tint-steel: #a5b8c0;
+  --tint-periwinkle: #8c9ae0;
+
+  /* ── Typography ── */
+  --font-display: 'Arial Black', 'Helvetica', system-ui, sans-serif;
+  --font-ui: 'Helvetica', 'Arial', system-ui, sans-serif;
+  --font-body: 'Times New Roman', 'Times', serif;
+
+  /* ── Radii ── */
+  --radius-none: 0px;
+  --radius-full: 9999px;
+
+  /* ── Spacing (4px base unit) ── */
+  --space-xxs: 2px;
+  --space-xs: 4px;
+  --space-s: 6px;
+  --space-sm: 8px;
+  --space-m: 10px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-xxl: 24px;
+  --space-3xl: 32px;
+  --space-4xl: 40px;
+  --space-5xl: 48px;
+  --space-6xl: 64px;
+}
