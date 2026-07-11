@@ -31,6 +31,9 @@ dependencies = [
     "google-generativeai>=0.5.0",
     "prompt-toolkit>=3.0.43",
     "rich>=13.7.0",
+    "textual>=8.0.0",
+    "textual-autocomplete>=3.0.0",
+    "InquirerPy>=0.3.4",
 ]
 
 [project.optional-dependencies]
@@ -59,7 +62,7 @@ Documentation = "https://github.com/yourusername/pacificapilot#readme"
 Repository = "https://github.com/yourusername/pacificapilot"
 
 [tool.setuptools]
-packages = ["pacificapilot", "pacificapilot.core", "pacificapilot.storage", "pacificapilot.providers", "pacificapilot.agents", "pacificapilot.telegram", "pacificapilot.memo", "pacificapilot.ui", "pacificapilot.memory"]
+packages = ["pacificapilot", "pacificapilot.core", "pacificapilot.storage", "pacificapilot.providers", "pacificapilot.agents", "pacificapilot.telegram", "pacificapilot.memo", "pacificapilot.ui", "pacificapilot.ui.tui", "pacificapilot.memory"]
 
 [tool.black]
 line-length = 100

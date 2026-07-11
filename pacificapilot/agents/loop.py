@@ -41,6 +41,7 @@ from ..providers import get_provider
 from ..sentiment import get_token_sentiment
 from ..memo import log_decision_memo
 from ..memory import get_memory
+from ..ui.tui.state import get_state as get_ui_state, PositionState, DecisionState
 from solders.keypair import Keypair
 
 
@@ -220,6 +221,20 @@ class LoopAgent:
                     print(f"[LoopAgent] ERROR processing {symbol}: {e}")
                     import traceback
                     traceback.print_exc()
+
+            # Update TUI state
+            try:
+                ui = get_ui_state()
+                ui.update(
+                    agent_running=self.running,
+                    agent_paused=self.paused,
+                    next_cycle_seconds=interval,
+                    mode=self.config.get("mode", "testnet"),
+                    dry_run=self.config.get("dry_run", True),
+                    provider_name=self.config.get("loop_agent_provider", ""),
+                )
+            except Exception:
+                pass
 
             cycle += 1
             print(f"\n[LoopAgent] Sleeping {interval}s until next cycle...")
@@ -423,6 +438,26 @@ class LoopAgent:
 
         # 7c. Daily performance summary (no-op if already written today)
         self._write_daily_summary_if_needed()
+
+        # 8. Update TUI shared state
+        try:
+            ui = get_ui_state()
+            ui.update(
+                btc_price=market_data.get("mark_price", 0),
+            )
+            ui.set_decision(symbol, DecisionState(
+                action=decision["action"],
+                confidence=decision["confidence"],
+                reasoning=decision.get("reasoning", "")[:80],
+            ))
+            if account_info:
+                ui.update(
+                    account_equity=account_info.get("account_equity", account_info.get("accountEquity", 0)),
+                    account_available=account_info.get("available_to_spend", account_info.get("availableToSpend", 0)),
+                    account_margin=account_info.get("total_margin_used", account_info.get("usedMargin", 0)),
+                )
+        except Exception:
+            pass
 
     def _execute_decision(
         self,

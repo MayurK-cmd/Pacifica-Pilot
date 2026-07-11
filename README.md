@@ -1,30 +1,38 @@
 # PacificaPilot 🤖⚡
 
-**Terminal-native AI trading agent for Pacifica Perpetual Futures — with persistent memory, multi-provider AI, and natural language trading.**
+**The AI trading agent that actually learns from every trade.**
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-green.svg)](https://python.org)
 [![Status](https://img.shields.io/badge/status-active--development-brightgreen.svg)]()
 
-PacificaPilot is an **autonomous AI trading agent** that runs entirely on your machine. It combines on-chain perpetual futures trading with multi-provider AI reasoning, technical analysis (RSI, MACD, Bollinger Bands), social sentiment, and **persistent memory via Supermemory** — so your agent actually learns from every trade and remembers your preferences across sessions.
+PacificaPilot is an **autonomous AI trading agent** for [Pacifica Perpetual Futures](https://pacifica.fi). It runs entirely on your machine, combines multi-provider AI reasoning with live technical analysis (RSI, MACD, Bollinger Bands), social sentiment, and **persistent memory via Supermemory** — so your agent actually remembers every trade, every preference, and every market pattern across sessions.
+
+**No cloud dependency. No data leaving your machine. Your keys, your agent, your trades.**
 
 ---
 
-## 🚀 Quick Demo
+## 🚀 Quick Start
 
 ```bash
 # Install
 pip install pacificapilot
 
-# Setup once
+# Setup once (keys, config, optional memory)
 pacifica init
 
-# Launch
+# Launch the TUI
 pacifica start
+
+# Inside the REPL, control the agent:
+# Type natural language or /commands
 ```
+
+### Natural Language Demo
 
 ```
 You:  "how are BTC markets right now should I go long or short?"
+
 Agent:
   📊 BTC — $63,996
   Regime: Weak uptrend (MACD bullish, histogram stable)
@@ -37,47 +45,40 @@ Agent:
 
 ---
 
-## ✨ Features
+## ✨ Why PacificaPilot?
 
-### 🧠 Autonomous Loop Agent
-Runs on a configurable timer, fetches live market data, and makes AI-driven trading decisions — all without human intervention.
-
-- **Market analysis** — Real-time RSI 5m/1h, MACD trend, Bollinger Bands, volume, funding rates, basis spreads
-- **AI decision engine** — Supports Anthropic, OpenAI, Google Gemini, and OpenRouter
-- **Risk management** — Position sizing, stop-loss, take-profit, Kelly Criterion, trailing stops
-- **Social sentiment** — Elfa AI integration for crowd sentiment signals
-- **On-chain memos** — Every decision logged on Solana
-
-### 💬 Chat Agent (Agentic Tool Loop)
-Natural language interface with true **tool-calling capability** — the AI can chain multiple tools, gather data, and reason before responding, just like Claude Code.
-
-| What you say | What happens |
+| Problem | Solution |
 |---|---|
-| "open a $50 long on WIF" | Places order with confirmation prompt |
-| "close all my positions" | Batch closes every open position |
-| "how are BTC markets?" | Fetches full snapshot (price, RSI, MACD, Bollinger, volume, regime) |
-| "what's my performance?" | Returns win rate, Sharpe, PnL, best/worst symbol |
-| "never trade BONK" | Saves preference to persistent memory |
-| "what did I trade last week?" | Recalls from Supermemory |
+| Trading agents start from zero every session | **Supermemory** remembers every trade, pattern, and preference |
+| AI hallucinates past trades | Memory layer gives the AI real data to answer from |
+| You have to re-state preferences constantly | "never trade SOL" — said once, remembered forever |
+| CLI tools feel like debug sessions | **Textual TUI** — proper 3-panel layout, autocomplete, live sidebar |
+| One AI provider locks you in | **BYOK** — Anthropic, OpenAI, Google, OpenRouter — swap anytime |
+| Trading agents are opaque black boxes | **Agentic tool loop** — the AI shows its reasoning, calls tools, gathers data before answering |
 
-**9 tools available:**
-`place_order` · `close_position` · `close_all_positions` · `get_positions` · `get_account_balance` · `get_market_price` (enriched) · `get_trade_history` · `get_performance_metrics` · `get_market_regime`
+### Key Features
 
-### 🧠 Persistent Memory (Supermemory)
-Every trade decision, market observation, and user preference is stored in a searchable memory layer that survives restarts.
+- 🧠 **Persistent Memory** — Supermemory integration. Every trade decision, market pattern, user preference, and daily summary is stored and searchable across sessions
+- 💬 **Agentic Chat** — Claude Code-style multi-turn tool loop. The AI gathers data, calls multiple tools, reasons step-by-step, then responds
+- 🤖 **Autonomous Loop Agent** — 24/7 market monitoring with AI-driven trading decisions
+- 🔄 **9 Trading Tools** — place orders, close positions, check balances, market analysis, performance metrics, regime detection
+- 🔐 **Non-Custodial & BYOK** — Your keys, your AI providers, your machine. Nothing leaves
+- 🎮 **Textual TUI** — Fixed 3-panel layout with slash autocomplete, live status sidebar, trade confirmation modals
+- 📊 **Technical Analysis** — Live RSI 5m/1h, MACD trend, Bollinger Bands, funding rates, volume signals, market regime detection
+- 📱 **Telegram Bot** (optional) — Trade and monitor from your phone
+- 🔌 **Multi-Provider AI** — Anthropic, OpenAI, Google Gemini, OpenRouter — use any, swap anytime
 
-- **Decisions** — Every LONG/SHORT/HOLD with confidence, reasoning, and signals
-- **Patterns** — Funding spikes, RSI extremes, basis divergences automatically detected
-- **Preferences** — "never trade SOL", "max position $200" — remembered forever
-- **Performance** — Daily summaries, win rates, best/worst symbols
-- **Cross-session** — Exit the CLI, come back tomorrow, the agent remembers everything
+---
 
-### 🔐 Security
-- **Non-custodial** — Your keys never leave your machine
-- **BYOK (Bring Your Own Key)** — Use your own AI provider keys
-- **Confirmation prompts** — Every trade requires explicit yes/no
-- **Dry run mode** — Paper trade by default, flip to live when ready
-- **Testnet first** — All new setups start on Pacifica testnet
+## Who Is This For?
+
+| Audience | Why |
+|---|---|
+| **Crypto Traders** | Automate your Pacifica perpetual futures strategies with AI that learns from your trading style |
+| **AI/ML Enthusiasts** | See how LLM tool-calling works in a real financial application with persistent memory |
+| **Hackathon Judges** | End-to-end local AI agent with live market data, tool execution, and cross-session memory — zero cloud dependencies |
+| **Privacy-Conscious Users** | Fully local mode with Supermemory running on localhost — zero data leaves your machine |
+| **Developers** | Clean Python architecture, BYOK model, easy to extend with new tools or AI providers |
 
 ---
 
@@ -85,7 +86,7 @@ Every trade decision, market observation, and user preference is stored in a sea
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                   YOUR MACHINE (all local)              │
+│                   YOUR MACHINE                          │
 │                                                         │
 │  ┌──────────────┐    ┌──────────────┐                   │
 │  │  Chat Agent  │    │  Loop Agent  │                   │
@@ -96,13 +97,17 @@ Every trade decision, market observation, and user preference is stored in a sea
 │                │                                         │
 │        ┌───────▼────────┐                                │
 │        │  Trading Core  │                                │
-│        │ (shared logic) │                                │
 │        └───────┬────────┘                                │
 │                │                                         │
 │  ┌─────────────▼─────────────┐  ┌──────────────────────┐ │
 │  │  Supermemory (persistent  │  │  Config & Secrets    │ │
 │  │  memory across sessions)  │  │  ~/.pacificapilot/   │ │
 │  └───────────────────────────┘  └──────────────────────┘ │
+│                                                         │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │  Textual TUI (3-panel layout)                    │   │
+│  │  Header | Chat Panel + Sidebar | Input Bar      │   │
+│  └──────────────────────────────────────────────────┘   │
 └──────────────────────────┬──────────────────────────────┘
                            │
                     ┌──────▼──────┐
@@ -111,30 +116,102 @@ Every trade decision, market observation, and user preference is stored in a sea
                     └─────────────┘
 ```
 
-### Project Structure
+---
 
-```
-pacificapilot/
-├── agents/           # Chat Agent (tool-calling loop) + Loop Agent (autonomous)
-├── core/             # Trading execution, market data, risk, analytics
-├── providers/        # AI provider adapters (Anthropic, OpenAI, Gemini, OpenRouter)
-├── memory/           # Supermemory wrapper for persistent cross-session memory
-├── storage/          # Config JSON, secrets, SQLite trade history
-├── telegram/         # Optional Telegram bot integration
-├── memo/             # On-chain decision logging (Solana)
-├── ui/               # Rich REPL with autocomplete + command system
-├── sentiment.py      # Elfa AI social sentiment integration
-├── orchestrator.py   # Multi-agent coordinator
-├── cli.py            # CLI entry point
-└── setup.py          # First-run wizard
-```
+## 🧠 The Supermemory Advantage
+
+**The problem:** Every trading agent starts from zero every session. Open the CLI, and the AI has no idea what it traded yesterday, what patterns it noticed, or what you told it. This causes hallucination ("yes, I remember that trade that never happened"), repetitive questions, and zero learning over time.
+
+**The solution:** PacificaPilot integrates [Supermemory](https://supermemory.ai) — a persistent, searchable memory layer that survives restarts.
+
+| Container | What's stored | Written by | Read by |
+|---|---|---|---|
+| `decisions` | Every LONG/SHORT/HOLD with confidence, reasoning, and signals | Loop Agent | Chat Agent |
+| `patterns` | Funding spikes, RSI extremes, basis divergences | Loop Agent | Both agents |
+| `preferences` | User config changes and stated preferences | Chat Agent | Chat Agent |
+| `performance` | Daily summaries with win rate, best/worst symbols | Loop Agent | Chat Agent |
+
+**How it's used:**
+- **Session start** — Your full memory profile is injected into the AI's system prompt via `--- MEMORY CONTEXT ---`
+- **History questions** — "what did I trade last week?" triggers semantic recall from memory
+- **Preferences** — "never trade SOL" or "always confirm over $200" — said once, remembered forever
+
+**Two deployment modes:**
+- **Cloud** — Hosted by Supermemory, no local process needed (default)
+- **Local** — Supermemory runs on `localhost:6767`, zero data leaves your machine
 
 ---
 
-## 🛠 Installation
+## 🛠 Tech Stack
+
+| Layer | Technology | Why |
+|---|---|---|
+| **Language** | Python 3.11+ | Universal, library-rich, perfect for AI/ML |
+| **CLI Framework** | Textual | Proper TUI with 3-panel layout, autocomplete, reactive widgets |
+| **AI Providers** | Anthropic, OpenAI, Google, OpenRouter | BYOK — bring your own key, swap anytime |
+| **Memory** | Supermemory SDK | Persistent, searchable, cross-session memory |
+| **Market Data** | Pacifica API + Binance fallback | Live prices, RSI, MACD, Bollinger, volume |
+| **Sentiment** | Elfa AI | Social sentiment signals for trading decisions |
+| **Blockchain** | Solana (solders + base58) | On-chain trade execution and memo logging |
+| **Storage** | JSON + SQLite | Config, secrets, trade history, decisions |
+| **Trading** | Pacifica Perpetual Futures | Non-custodial on-chain perps |
+
+### Why This Stack?
+
+- **BYOK AI** — No vendor lock-in. Use Claude for reasoning, GPT for speed, Gemini for free tier
+- **Supermemory** — First trading agent to integrate persistent memory — this is the hackathon differentiator
+- **Textual** — Rich interactive TUI without web dependencies. Works in any terminal
+- **Local-first** — Everything runs on your machine. Pacifica API calls go direct, no middleman
+
+---
+
+## 🎮 9 Tools at Your Command
+
+| Tool | What it does |
+|---|---|
+| `place_order` | Open LONG/SHORT positions (with confirmation) |
+| `close_position` | Close a specific position |
+| `close_all_positions` | Flatten the entire book (batch confirmation) |
+| `get_positions` | View open positions with unrealized PnL |
+| `get_account_balance` | Check USDC balance, equity, available capital |
+| `get_market_price` | Full snapshot: price, RSI, MACD, Bollinger, volume, funding, regime |
+| `get_trade_history` | Past trades with PnL, duration, entry/exit |
+| `get_performance_metrics` | Win rate, Sharpe, profit factor, drawdown |
+| `get_market_regime` | Detect trending/ranging/volatile with trading guidance |
+
+---
+
+## 💬 Agents
+
+### Loop Agent (Autonomous)
+Runs on a configurable timer, fetches live market data, and makes AI-driven trading decisions — no human intervention needed. Writes every decision, pattern, and outcome to Supermemory automatically.
+
+### Chat Agent (Agentic Tool Loop)
+A Claude Code-style multi-turn reasoning loop. The AI:
+1. Receives your question
+2. Decides what tools to call (market data, positions, balance, etc.)
+3. Executes them, feeds results back to itself
+4. Can chain multiple tools, gather context, then respond
+5. Returns a clear, data-backed answer
+
+---
+
+## 🔐 Security Model
+
+- **Non-custodial**: Keys on your machine, nowhere else
+- **BYOK**: Your AI keys go directly to your provider
+- **Confirmation prompts**: Every trade action requires explicit yes/no
+- **Dry run mode**: All trades simulated by default
+- **Testnet first**: New setups start on testnet with no real money
+- **Restricted perms**: Secrets file at `~/.pacificapilot/secrets.env` with `chmod 600`
+- **Memory optional**: Supermemory is additive — trading works without it
+
+---
+
+## 📦 Installation & Setup
 
 ```bash
-# Via pipx (recommended — isolated environment)
+# Via pipx (recommended — isolated)
 pipx install pacificapilot
 
 # Or pip
@@ -144,198 +221,17 @@ pip install pacificapilot
 git clone https://github.com/yourusername/pacificapilot.git
 cd pacificapilot
 pip install -e ".[dev,telegram,memory]"
-```
 
-### First-Run Setup
-
-```bash
+# First-run setup
 pacifica init
-```
-
-The wizard collects:
-1. Pacifica public/private keys (Solana keypair)
-2. AI provider choice and API key
-3. Trading parameters (symbols, position limits, confidence threshold)
-4. Optional: Supermemory API key for persistent memory
-
----
-
-## 🎮 Usage
-
-### Start the REPL
-
-```bash
-pacifica start
-```
-
-This opens the interactive terminal — the Loop Agent does **not** auto-start. You control it with `/start` and `/stop`.
-
-### Commands
-
-| Command | What it does |
-|---|---|
-| `/start` | Boot the autonomous Loop Agent in background |
-| `/stop` | Stop the Loop Agent |
-| `/pause` | Soft-pause the loop (process stays alive) |
-| `/resume` | Un-pause the loop |
-| `/config` | View/edit trading parameters |
-| `/apikey` | Manage AI provider and Supermemory keys |
-| `/mode` | Switch testnet / mainnet |
-| `/status` | Account equity, positions, agent status |
-| `/positions` | List open perpetual positions |
-| `/history` | Recent trades and decisions |
-| `/performance` | Sharpe, drawdown, win rate metrics |
-| `/analytics` | Monthly returns, per-symbol breakdown |
-| `/backtest` | Run backtest on historical data |
-| `/portfolio` | Portfolio risk metrics + correlation |
-| `/account` | Account stats from Pacifica |
-| `/remote` | Telegram remote mode |
-| `/help` | Show all commands |
-
-### Natural Language Trading
-
-```
-You: open a $50 long on WIF
-You: what's my balance?
-You: close my ETH position
-You: how are the markets for BTC?
-You: what was my best trade ever?
-You: I never want to trade BONK
-```
-
----
-
-## 🔌 AI Providers
-
-| Provider | Models | Best For |
-|----------|--------|----------|
-| **OpenRouter** | All models via one API | Recommended default |
-| **Anthropic** | Claude 3.5/4 Sonnet, Haiku, Opus | Best reasoning & tool use |
-| **OpenAI** | GPT-4o, GPT-4o-mini | Fast, cost-effective |
-| **Google Gemini** | Gemini 2.0 Flash, 1.5 Pro | Free tier available |
-
-Configure with `/apikey <provider> <key>`.
-
----
-
-## 🧠 Supermemory Integration
-
-PacificaPilot is one of the first trading agents to integrate [Supermemory](https://app.supermemory.ai) for persistent, searchable memory across sessions.
-
-**What gets remembered:**
-- Every trade decision (direction, confidence, reasoning, signals)
-- Every position close (PnL, entry/exit, duration, win/loss)
-- Market patterns (funding spikes, RSI extremes, basis divergences)
-- User preferences and config changes
-- Daily performance summaries
-- Provider errors and fallback activations
-
-**How it's used:**
-- **Session start** — Your full profile is injected into the AI's system prompt
-- **Natural questions** — "what did I trade last week?" triggers semantic recall
-- **Preferences** — "never trade SOL" is remembered forever
-
-Get a free key at [app.supermemory.ai](https://app.supermemory.ai) and run:
-```
-/apikey supermemory sm_your_key_here
+# → Pacifica keys → AI provider → Trading config → Supermemory (optional)
 ```
 
 ---
 
 ## 📊 Supported Markets
 
-Pacifica offers perpetual futures on a wide range of assets:
-
-**Major:** BTC, ETH, SOL
-**Alt:** WIF, BONK, DOGE, PEPE, and many more
-
-All available through the [Pacifica API](https://docs.pacifica.fi).
-
----
-
-## ⚙️ Configuration
-
-All stored in `~/.pacificapilot/`:
-
-| File | What it stores |
-|---|---|
-| `config.json` | Trading parameters, AI models, risk settings |
-| `secrets.env` | API keys and private keys (chmod 600) |
-| `trades.json` | Trade history |
-| `decisions.json` | AI decision log |
-| `positions.json` | Current position state |
-
-### Key Settings
-
-| Setting | Default | Description |
-|---|---|---|
-| `symbols` | `["BTC", "ETH"]` | Markets to trade |
-| `max_position_usdc` | `100.0` | Max USDC per position |
-| `min_confidence` | `0.6` | Min AI confidence to trade |
-| `stop_loss_pct` | `5.0` | Stop loss |
-| `take_profit_pct` | `10.0` | Take profit |
-| `risk_profile` | `balanced` | conservative / balanced / aggressive |
-| `dry_run` | `True` | Paper trading by default |
-| `use_kelly_criterion` | `False` | Kelly position sizing |
-
----
-
-## 🔧 Development
-
-```bash
-# Setup
-git clone https://github.com/yourusername/pacificapilot.git
-cd pacificapilot
-pip install -e ".[dev,telegram,memory]"
-
-# Run tests
-python -m pytest tests/unit
-
-# Run full test suite
-python -m pytest tests/
-```
-
----
-
-## ☁️ Supermemory
-
-**What it is:** A memory engine that persists trading knowledge across sessions. Every trade decision, market pattern, user preference, and performance summary is stored and searchable.
-
-**Why it matters:** The agent learns over time — it doesn't start from zero every session. It remembers your preferences, past trades, and market observations.
-
-**How to use it:**
-1. Get a free key at [app.supermemory.ai](https://app.supermemory.ai)
-2. Run `pacifica init` and enter the key at the prompt
-3. Or inside the REPL: `/apikey supermemory sm_your_key`
-4. The agent starts remembering everything automatically
-
----
-
-## 🧪 Agentic Tool Loop
-
-Unlike traditional chat bots that make one API call and respond, PacificaPilot uses a **multi-turn agentic loop**:
-
-1. User asks a question
-2. AI decides which tool(s) to call
-3. Tools are executed, results fed back to the AI
-4. AI can call more tools or produce a final answer
-5. Loop repeats up to 8 iterations
-
-This means the AI can:
-- Fetch market data, THEN analyze it, THEN give a recommendation
-- Check positions, THEN calculate performance, THEN summarize
-- Gather multiple data points before responding
-
----
-
-## 🔐 Security Model
-
-- **Non-custodial**: Keys on your machine, nowhere else
-- **BYOK**: Your AI keys go directly to your provider
-- **Confirmation**: Every trade action requires explicit user yes/no
-- **Dry run**: All trades simulated by default
-- **Testnet first**: New setups start on testnet with no real money
-- **Restricted perms**: Secrets file at `~/.pacificapilot/secrets.env` with `chmod 600`
+Pacifica offers perpetual futures on a wide range of assets including BTC, ETH, SOL, WIF, BONK, DOGE, PEPE, and many more through the [Pacifica API](https://docs.pacifica.fi).
 
 ---
 
@@ -347,8 +243,4 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
-## 🤝 Contributing
-
-PRs welcome! Check the [issues](https://github.com/yourusername/pacificapilot/issues) for good first issues.
-
-Built for the [Supermemory](https://supermemory.ai) hackathon (July 2025) and [Pacifica](https://pacifica.fi) ecosystem.
+Built for the [Supermemory](https://supermemory.ai) hackathon (July 2025) and the [Pacifica](https://pacifica.fi) ecosystem.

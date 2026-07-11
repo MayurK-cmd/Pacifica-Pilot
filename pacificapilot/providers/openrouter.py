@@ -5,6 +5,7 @@ Recommended as the default BYOK option since it provides access to
 Anthropic, OpenAI, Google, and many other models through one API.
 """
 
+import json
 from typing import Optional, List
 import requests
 
@@ -138,7 +139,6 @@ class OpenRouterProvider(AIProvider):
                 content.append({"type": "text", "text": message["content"]})
 
             if message.get("tool_calls"):
-                import json
                 for tool_call in message["tool_calls"]:
                     content.append({
                         "type": "tool_use",

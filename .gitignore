@@ -49,3 +49,6 @@ htmlcov/
 tests
 pytest.ini
 requirements.txt
+CLI_UI.md
+DESIGN.md
+PRODUCT.md

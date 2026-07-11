@@ -19,6 +19,7 @@ from rich.text import Text
 from rich.table import Table
 from rich import box
 import sys
+import os
 from typing import Optional
 
 from pacificapilot.storage.config import (
@@ -153,6 +154,15 @@ def create_prompt_style() -> Style:
 def get_prompt_message() -> HTML:
     """Get the formatted prompt message."""
     return HTML(f'<prompt>pacifica</prompt> <b>›</b> ')
+
+
+def _secrets_has(key_name: str) -> bool:
+    """Check if a key exists in secrets.env without printing it."""
+    try:
+        from ..storage.config import load_secrets
+        return bool(load_secrets().get(key_name))
+    except Exception:
+        return False
 
 
 class PacificaREPL:
@@ -478,6 +488,7 @@ class PacificaREPL:
             self.console.print()
             self.console.print(table)
             self.console.print(f"\n[dim]Use [bold]/apikey <provider> <key>[/bold] to set a key[/dim]")
+            self.console.print(f"[dim]  supermemory: [bold]/apikey supermemory <key> [local|cloud][/bold][/dim]")
             self.console.print(f"[dim]Example: [bold]/apikey anthropic sk-ant-...[/bold][/dim]\n")
 
         elif len(args) >= 2:
@@ -503,32 +514,54 @@ class PacificaREPL:
                 self.console.print(f"[dim]Valid providers: {', '.join([k.lower() for k in provider_map.keys()])}[/dim]\n")
                 return
 
-            update_secret(key_name, key_value)
-
-            # For supermemory, also reinit the PilotMemory singleton so the
-            # new key is picked up without a restart of the CLI.
-            if provider == "SUPERMEMORY":
-                try:
-                    from ..memory import reset_memory
-
-                    new_memory = reset_memory()
-                    if new_memory.enabled:
-                        try:
-                            new_memory.recall("supermemory connection test", limit=1)
-                        except Exception:
-                            pass
-                        self.console.print(
-                            f"\n[green]✓ supermemory connected[/green]\n"
-                        )
-                    else:
-                        self.console.print(
-                            f"\n[yellow]⚠ Key saved but Supermemory client failed to initialise. Check the key.[/yellow]\n"
-                        )
-                except Exception as e:
-                    self.console.print(
-                        f"\n[yellow]⚠ Key saved but reinitialisation failed: {e}[/yellow]\n"
-                    )
+            # For non-supermemory providers, just write and done
+            if provider != "SUPERMEMORY":
+                update_secret(key_name, key_value)
+                self.console.print(f"\n[green]Updated {provider.lower()} API key[/green]\n")
                 return
+
+            # For supermemory, extract mode from the key argument before writing
+            pieces = key_value.split(maxsplit=1)
+            raw_key = pieces[0]
+            sm_mode = pieces[1].lower() if len(pieces) > 1 else None
+
+            # Guard: if the "key" looks like just a mode name, the user probably
+            # typed /apikey supermemory cloud instead of /apikey supermemory <key> cloud.
+            if raw_key.lower() in ("local", "cloud"):
+                self.console.print(
+                    f"\n[yellow]⚠ Invalid syntax. Use: /apikey supermemory <your-key> [local|cloud][/yellow]\n"
+                )
+                return
+
+            update_secret("SUPERMEMORY_API_KEY", raw_key)
+            if sm_mode in ("local", "cloud"):
+                update_secret("SUPERMEMORY_MODE", sm_mode)
+            if sm_mode == "local":
+                update_secret("SUPERMEMORY_LOCAL_URL", "http://localhost:6767")
+
+            try:
+                from ..memory import reset_memory
+
+                new_memory = reset_memory(api_key=raw_key, mode=sm_mode)
+                if new_memory.enabled:
+                    mode_label = "local" if new_memory.mode == "local" else "cloud"
+                    try:
+                        new_memory.recall("supermemory connection test", limit=1)
+                    except Exception:
+                        pass
+                    self.console.print(
+                        f"\n[green]✓ Supermemory connected ({mode_label})[/green]\n"
+                    )
+                else:
+                    self.console.print(
+                        f"\n[yellow]⚠ Key saved but Supermemory client failed. "
+                        f"Check the key and run mode (local/cloud).[/yellow]\n"
+                    )
+            except Exception as e:
+                self.console.print(
+                    f"\n[yellow]⚠ Key saved but reinitialisation failed: {e}[/yellow]\n"
+                )
+            return
 
             self.console.print(f"\n[green]Updated {provider.lower()} API key[/green]\n")
         else:
@@ -648,6 +681,29 @@ class PacificaREPL:
             upnl_color = PACIFICA_GREEN if unrealized_pnl >= 0 else PACIFICA_RED
             upnl_sign = "+" if unrealized_pnl >= 0 else ""
             status_text.append(f"{upnl_sign}${unrealized_pnl:,.2f}\n", style=upnl_color)
+
+        # Memory status
+        status_text.append("\nMemory: ", style="bold")
+        try:
+            from ..memory import get_memory
+            mem = get_memory()
+            if mem.enabled:
+                mode_label = "Local" if mem.mode == "local" else "Cloud"
+                status_text.append(f"● {mode_label}", style=PACIFICA_GREEN)
+                if mem._client:
+                    try:
+                        count = len(mem.recall("", limit=1))
+                    except Exception:
+                        count = 0
+                    status_text.append(f"  ({count} memories)", style=PACIFICA_FG)
+            else:
+                if mem.mode == "local" and os.getenv("SUPERMEMORY_API_KEY") or _secrets_has("SUPERMEMORY_API_KEY"):
+                    status_text.append("✗ Local unreachable", style=PACIFICA_RED)
+                    status_text.append(" (run: npx supermemory local)", style="dim")
+                else:
+                    status_text.append("○ Disabled", style=PACIFICA_MUTED)
+        except Exception:
+            status_text.append("○ Disabled", style=PACIFICA_MUTED)
 
         # Loop Agent status
         status_text.append("\nLoop Agent: ", style="bold")

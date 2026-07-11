@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-11T00:00:00.000Z",
+  "title": "Design System: PacificaPilot",
+  "extensions": {
+    "colorMeta": {
+      "surface-dark": { "role": "neutral", "displayName": "Surface Dark", "canonical": "oklch(0.14 0.02 260)", "tonalRamp": ["oklch(0.07 0.015 260)", "oklch(0.10 0.018 260)", "oklch(0.14 0.02 260)", "oklch(0.18 0.025 260)", "oklch(0.22 0.03 260)", "oklch(0.35 0.04 260)", "oklch(0.50 0.06 260)", "oklch(0.70 0.08 260)"] },
+      "surface-raised": { "role": "neutral", "displayName": "Surface Raised", "canonical": "oklch(0.18 0.025 260)", "tonalRamp": ["oklch(0.09 0.015 260)", "oklch(0.14 0.02 260)", "oklch(0.18 0.025 260)", "oklch(0.22 0.03 260)", "oklch(0.30 0.035 260)", "oklch(0.45 0.05 260)", "oklch(0.60 0.07 260)", "oklch(0.80 0.09 260)"] },
+      "surface-mid": { "role": "neutral", "displayName": "Surface Mid", "canonical": "oklch(0.22 0.03 260)", "tonalRamp": ["oklch(0.11 0.018 260)", "oklch(0.16 0.022 260)", "oklch(0.22 0.03 260)", "oklch(0.28 0.035 260)", "oklch(0.38 0.04 260)", "oklch(0.52 0.055 260)", "oklch(0.68 0.075 260)", "oklch(0.85 0.09 260)"] },
+      "ink-white": { "role": "neutral", "displayName": "Ink White", "canonical": "oklch(0.98 0.005 260)", "tonalRamp": ["oklch(0.85 0.005 260)", "oklch(0.90 0.005 260)", "oklch(0.95 0.005 260)", "oklch(0.98 0.005 260)", "oklch(0.99 0.002 260)", "oklch(1 0 0)", "oklch(1 0 0)", "oklch(1 0 0)"] },
+      "ink-muted": { "role": "neutral", "displayName": "Ink Muted", "canonical": "oklch(0.70 0.02 260)", "tonalRamp": ["oklch(0.35 0.01 260)", "oklch(0.45 0.012 260)", "oklch(0.55 0.015 260)", "oklch(0.65 0.018 260)", "oklch(0.70 0.02 260)", "oklch(0.78 0.022 260)", "oklch(0.85 0.025 260)", "oklch(0.92 0.028 260)"] },
+      "blue-primary": { "role": "primary", "displayName": "Blueprint Blue", "canonical": "oklch(0.72 0.16 250)", "tonalRamp": ["oklch(0.25 0.08 250)", "oklch(0.35 0.10 250)", "oklch(0.45 0.12 250)", "oklch(0.55 0.14 250)", "oklch(0.65 0.16 250)", "oklch(0.72 0.16 250)", "oklch(0.80 0.14 250)", "oklch(0.88 0.10 250)"] },
+      "blue-glow": { "role": "primary", "displayName": "Blueprint Glow", "canonical": "oklch(0.78 0.18 250)", "tonalRamp": ["oklch(0.30 0.09 250)", "oklch(0.40 0.11 250)", "oklch(0.50 0.13 250)", "oklch(0.60 0.15 250)", "oklch(0.70 0.17 250)", "oklch(0.78 0.18 250)", "oklch(0.85 0.16 250)", "oklch(0.92 0.12 250)"] },
+      "blue-deep": { "role": "primary", "displayName": "Blueprint Deep", "canonical": "oklch(0.55 0.18 250)", "tonalRamp": ["oklch(0.20 0.08 250)", "oklch(0.28 0.10 250)", "oklch(0.36 0.12 250)", "oklch(0.44 0.14 250)", "oklch(0.55 0.18 250)", "oklch(0.65 0.18 250)", "oklch(0.75 0.16 250)", "oklch(0.85 0.12 250)"] },
+      "red-signal": { "role": "semantic", "displayName": "Red Signal", "canonical": "oklch(0.65 0.24 25)", "tonalRamp": ["oklch(0.25 0.12 25)", "oklch(0.35 0.15 25)", "oklch(0.45 0.18 25)", "oklch(0.55 0.22 25)", "oklch(0.65 0.24 25)", "oklch(0.72 0.22 25)", "oklch(0.80 0.18 25)", "oklch(0.88 0.12 25)"] },
+      "green-signal": { "role": "semantic", "displayName": "Green Signal", "canonical": "oklch(0.85 0.20 145)", "tonalRamp": ["oklch(0.35 0.08 145)", "oklch(0.45 0.10 145)", "oklch(0.55 0.12 145)", "oklch(0.65 0.14 145)", "oklch(0.75 0.17 145)", "oklch(0.85 0.20 145)", "oklch(0.90 0.16 145)", "oklch(0.95 0.10 145)"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero product name, single-use per page." },
+      "headline": { "displayName": "Headline", "purpose": "Section titles, 2-3 per page." },
+      "title": { "displayName": "Title", "purpose": "Card titles, feature names, tool headings." },
+      "body": { "displayName": "Body", "purpose": "Primary reading text and descriptions." },
+      "label": { "displayName": "Label", "purpose": "Eyebrow labels, section kickers, uppercase metadata." },
+      "mono": { "displayName": "Mono Body", "purpose": "Terminal output, code blocks, data tables." }
+    },
+    "shadows": [
+      { "name": "card-shadow", "value": "0 8px 40px -12px oklch(0 0 0 / 0.6)", "purpose": "Default card and panel elevation." },
+      { "name": "glow-shadow", "value": "0 0 60px -10px oklch(0.72 0.16 250 / 0.55)", "purpose": "Primary CTA and hero accent. One per view." },
+      { "name": "hover-lift", "value": "0 12px 48px -16px oklch(0 0 0 / 0.7)", "purpose": "Interactive card hover state." }
+    ],
+    "motion": [
+      { "name": "state-transition", "value": "150ms ease-out", "purpose": "All state changes: hover, focus, active, disabled." },
+      { "name": "entrance-fade", "value": "700ms ease-out", "purpose": "Initial page entrance animation, fade-up only." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" },
+      { "name": "2xl", "value": "1536px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single primary action per view. Solid Blueprint Blue fill.",
+      "html": "<button class=\"ds-btn-primary\">Get Started</button>",
+      "css": ".ds-btn-primary { font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; line-height: 1; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; height: 2.5rem; padding: 0.5rem 1.5rem; border-radius: 0.5rem; background: oklch(0.72 0.16 250); color: oklch(0.14 0.02 260); border: none; cursor: pointer; transition: background 150ms ease-out, box-shadow 150ms ease-out; } .ds-btn-primary:hover { background: oklch(0.78 0.18 250); } .ds-btn-primary:active { background: oklch(0.55 0.18 250); } .ds-btn-primary:focus-visible { outline: 2px solid oklch(0.72 0.16 250); outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Secondary action alongside a primary button.",
+      "html": "<button class=\"ds-btn-outline\">View on GitHub</button>",
+      "css": ".ds-btn-outline { font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; line-height: 1; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; height: 2.5rem; padding: 0.5rem 1.5rem; border-radius: 0.5rem; background: transparent; color: oklch(0.98 0.005 260); border: 1px solid oklch(1 0 0 / 15%); cursor: pointer; transition: background 150ms ease-out; } .ds-btn-outline:hover { background: oklch(1 0 0 / 5%); } .ds-btn-outline:focus-visible { outline: 2px solid oklch(0.72 0.16 250); outline-offset: 2px; } .ds-btn-outline:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Low-importance action in toolbars and panels.",
+      "html": "<button class=\"ds-btn-ghost\">Cancel</button>",
+      "css": ".ds-btn-ghost { font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; line-height: 1; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; height: 2.5rem; padding: 0.5rem 1.5rem; border-radius: 0.5rem; background: transparent; color: oklch(0.70 0.02 260); border: none; cursor: pointer; transition: background 150ms ease-out, color 150ms ease-out; } .ds-btn-ghost:hover { background: oklch(0.22 0.03 260); color: oklch(0.98 0.005 260); } .ds-btn-ghost:focus-visible { outline: 2px solid oklch(0.72 0.16 250); outline-offset: 2px; } .ds-btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Card Container",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Default content card with surface-raised background.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-content\">Card content</div></div>",
+      "css": ".ds-card { background: oklch(0.18 0.025 260); border: 1px solid oklch(1 0 0 / 8%); border-radius: 0.75rem; box-shadow: 0 8px 40px -12px oklch(0 0 0 / 0.6); transition: box-shadow 150ms ease-out; } .ds-card-content { padding: 1.5rem; } .ds-card-interactive:hover { box-shadow: 0 12px 48px -16px oklch(0 0 0 / 0.7); }"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Default text input for forms and search.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Enter value\">",
+      "css": ".ds-input { font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; line-height: 1.5; height: 2.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; background: oklch(0.18 0.025 260); color: oklch(0.98 0.005 260); border: 1px solid oklch(1 0 0 / 12%); transition: box-shadow 150ms ease-out, border-color 150ms ease-out; width: 100%; box-sizing: border-box; } .ds-input:focus { outline: none; border-color: oklch(0.72 0.16 250); box-shadow: 0 0 0 2px oklch(0.72 0.16 250); } .ds-input::placeholder { color: oklch(0.70 0.02 260); } .ds-input:disabled { opacity: 0.5; cursor: not-allowed; } .ds-input[aria-invalid=\"true\"] { border-color: oklch(0.65 0.24 25); }"
+    },
+    {
+      "name": "Code Block",
+      "kind": "custom",
+      "refersTo": "mono",
+      "description": "Terminal output / code display block.",
+      "html": "<div class=\"ds-code-block\"><div class=\"ds-code-header\"><span>bash</span><button>Copy</button></div><pre class=\"ds-code-pre\"><code>$ pip install pacificapilot</code></pre></div>",
+      "css": ".ds-code-block { font-family: 'JetBrains Mono', ui-monospace, monospace; background: oklch(0.22 0.03 260); border: 1px solid oklch(1 0 0 / 8%); border-radius: 0.75rem; overflow: hidden; } .ds-code-header { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 1rem; border-bottom: 1px solid oklch(1 0 0 / 8%); background: oklch(0.14 0.02 260 / 0.5); font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.15em; color: oklch(0.70 0.02 260); } .ds-code-header button { background: none; border: none; color: oklch(0.70 0.02 260); cursor: pointer; font-family: inherit; font-size: inherit; } .ds-code-header button:hover { color: oklch(0.98 0.005 260); } .ds-code-pre { padding: 1rem; margin: 0; font-size: 0.875rem; line-height: 1.5; color: oklch(0.85 0.20 145); overflow-x: auto; }"
+    },
+    {
+      "name": "Navigation Header",
+      "kind": "nav",
+      "refersTo": "button-ghost",
+      "description": "Sticky top navigation bar.",
+      "html": "<header class=\"ds-nav\"><a class=\"ds-nav-logo\" href=\"#\"><span class=\"ds-nav-mark\">P</span><span>PacificaPilot</span></a><nav class=\"ds-nav-links\"><a href=\"#\">Features</a><a href=\"#\">Tools</a><a href=\"#\">Install</a></nav></header>",
+      "css": ".ds-nav { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; height: 4rem; padding: 0 1.5rem; max-width: 80rem; margin: 0 auto; background: oklch(0.14 0.02 260 / 0.6); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-bottom: 1px solid oklch(1 0 0 / 5%); } .ds-nav-logo { display: flex; align-items: center; gap: 0.5rem; font-family: 'JetBrains Mono', ui-monospace, monospace; font-weight: 700; font-size: 1rem; color: oklch(0.98 0.005 260); text-decoration: none; } .ds-nav-mark { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 0.5rem; background: oklch(0.72 0.16 250); color: oklch(0.14 0.02 260); font-weight: 900; font-size: 0.875rem; } .ds-nav-links { display: flex; gap: 2rem; } .ds-nav-links a { font-size: 0.875rem; color: oklch(0.70 0.02 260); text-decoration: none; transition: color 150ms ease-out; } .ds-nav-links a:hover { color: oklch(0.98 0.005 260); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Mission Console",
+    "overview": "A command center dashboard for algorithmic trading — dense, authoritative, and quietly illuminated. Every element exists because it carries information or enables an action. The interface should feel like the bridge of a ship at night: lots of data, calm voices, controlled lighting. Trust is earned through clarity, not visual warmth.\n\nThis system rejects everything that reads as consumer crypto — rainbow gradients, glass panels, glossy buttons, animated mascots, or copy that talks about \"boosting\" anything. The primary reference is Bloomberg Terminal crossed with a well-designed terminal emulator: sharp typography, semantic color, information density without noise.",
+    "keyCharacteristics": [
+      "Dark surface with controlled, semantic accent lighting",
+      "Single type family across all UI (Inter), with JetBrains Mono reserved for data and code",
+      "Information density is encouraged; every pixel must earn its place",
+      "Color is semantic, not decorative — blue for interactive, red for destructive, green for confirmation",
+      "Corners are gently radiused (0.5–0.75rem), never pill-shaped or clown-round",
+      "Motion is brief (150–250ms) and signals state, never personality",
+      "Shadows create surface hierarchy, not atmosphere"
+    ],
+    "rules": [
+      { "name": "The One-Hue Rule", "body": "The system speaks in one accent hue: blue at 250°. There is no secondary accent hue.", "section": "colors" },
+      { "name": "The Terminal Green Rule", "body": "oklch(0.85 0.20 145) is the only green. It signals favorable numeric conditions, not emotional happiness.", "section": "colors" },
+      { "name": "The Single Scale Rule", "body": "One family (Inter) serves all prose roles. Only technical/code content switches to JetBrains Mono.", "section": "typography" },
+      { "name": "The Quiet Ground Rule", "body": "The base surface is never shadowed. The base is the ground plane.", "section": "elevation" },
+      { "name": "The Blue Glow Rule", "body": "The glow shadow is never applied to more than one element at a time.", "section": "elevation" }
+    ],
+    "dos": [
+      "Use Blueprint Blue for exactly one primary action per view. Everything else gets outline or ghost.",
+      "Use the three-surface hierarchy: Surface Dark (base), Surface Raised (card), Surface Mid (hover/panel). Never invent a fourth.",
+      "Keep body text at Ink White (0.98 lightness) against the background — the contrast is deliberate and non-negotiable.",
+      "Use JetBrains Mono for any text where character alignment matters: commands, trading data, code blocks, table columns.",
+      "Use text-wrap: balance on h1–h3 and text-wrap: pretty on prose paragraphs.",
+      "Use 150–200ms transitions for all state changes (hover, focus, active). Users are in a task; motion must not slow them down.",
+      "Use cursor-pointer on all interactive elements, cursor-not-allowed on disabled ones."
+    ],
+    "donts": [
+      "Don't use purple or rainbow gradients anywhere. The palette has one accent hue (blue, 250°).",
+      "Don't use glassmorphism, frosted panels, or backdrop-filter: blur() on content surfaces.",
+      "Don't use pill-shaped buttons or border-radius over 0.75rem on any interactive element.",
+      "Don't animate the hero, add particle backgrounds, or use floating/parallax decorative elements.",
+      "Don't use \"10x\" \"supercharge\" \"boost\" \"game-changing\" or any crypto-marketing language in the UI.",
+      "Don't use bright multi-color buttons on the dark background. All buttons use surface-aware color assignments.",
+      "Don't write skeleton loaders everywhere. Prefer minimal inline loading or none for data-heavy screens.",
+      "Don't use border-left or border-right as a colored accent stripe on any component.",
+      "Don't use background-clip: text with a gradient for decorative text emphasis.",
+      "Don't use numbered section markers (01, 02, 03) above every section.",
+      "Don't add empty states that say \"nothing here\" — teach the interface instead."
+    ]
+  }
+}

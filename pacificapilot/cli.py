@@ -2,8 +2,9 @@
 CLI entry point for PacificaPilot.
 
 Usage:
-    pacifica init    - First-run setup wizard
-    pacifica start   - Launch Chat Agent + Loop Agent (interactive UI with background trading)
+    pacifica init          - First-run setup wizard
+    pacifica start         - Launch TUI (Textual) with optional Loop Agent in background
+    pacifica start --legacy - Fall back to the old prompt-toolkit REPL
 """
 
 import sys
@@ -12,12 +13,12 @@ import sys
 def main():
     """Entry point for the pacifica CLI."""
     if len(sys.argv) < 2:
-        # Default: show usage
         print("PacificaPilot CLI")
         print()
         print("Usage:")
-        print("  pacifica init    - First-run setup wizard")
-        print("  pacifica start   - Start trading agent (interactive UI + background Loop Agent)")
+        print("  pacifica init          - First-run setup wizard")
+        print("  pacifica start         - Start trading TUI (Textual interface)")
+        print("  pacifica start --legacy - Fall back to old REPL")
         print()
         print("For help: https://github.com/yourusername/pacificapilot")
         return
@@ -28,8 +29,23 @@ def main():
         from .setup import run_setup_wizard
         run_setup_wizard()
     elif command == "start":
-        from .ui.repl import start_repl
-        start_repl()
+        use_legacy = "--legacy" in sys.argv
+
+        if use_legacy:
+            from .ui.repl import start_repl
+            start_repl()
+            return
+
+        # Launch the Textual TUI
+        try:
+            from .ui.tui.app import PacificaPilotApp
+            app = PacificaPilotApp()
+            app.run()
+        except Exception as e:
+            print(f"TUI failed to start: {e}")
+            print("Falling back to legacy REPL...")
+            from .ui.repl import start_repl
+            start_repl()
     else:
         print(f"Unknown command: {command}")
         print()

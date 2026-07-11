@@ -4,6 +4,7 @@ OpenAI provider — direct integration with GPT models via OpenAI API.
 Uses openai Python SDK.
 """
 
+import json
 from typing import Optional, List
 import openai
 
@@ -129,7 +130,6 @@ class OpenAIProvider(AIProvider):
                 content.append({"type": "text", "text": message.content})
 
             if message.tool_calls:
-                import json
                 for tool_call in message.tool_calls:
                     content.append({
                         "type": "tool_use",

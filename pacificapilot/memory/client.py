@@ -47,24 +47,40 @@ class PilotMemory:
     memory write, never a blocked trade.
     """
 
-    def __init__(self, api_key: Optional[str] = None):
-        # Allow passing the key explicitly for tests; otherwise read from env
+    def __init__(self, api_key: Optional[str] = None, mode: Optional[str] = None):
+        """Initialise with optional explicit key + mode.
+
+        Args:
+            api_key: Supermemory API key. If None, read from env then secrets.env.
+            mode: "local" or "cloud". If None, read from SUPERMEMORY_MODE env var
+                  then secrets.env. Defaults to "local" if still unset.
+        """
+        # --- Resolve api_key ---
         if api_key is None:
             api_key = os.getenv("SUPERMEMORY_API_KEY")
-
-        # Fallback: try the project's own secrets file if the env var is unset.
-        # The user may have set the key via /apikey which writes to secrets.env
-        # but does not export it to the process environment. Without this
-        # fallback reset_memory() would return a disabled client after /apikey.
         if not api_key:
             try:
                 from ..storage.config import load_secrets
-
                 secrets = load_secrets()
                 api_key = secrets.get("SUPERMEMORY_API_KEY")
             except Exception:
                 pass
 
+        # --- Resolve mode ---
+        if mode is None:
+            mode = os.getenv("SUPERMEMORY_MODE", "")
+        if not mode:
+            try:
+                from ..storage.config import load_secrets
+                secrets = load_secrets()
+                mode = secrets.get("SUPERMEMORY_MODE", "")
+            except Exception:
+                pass
+        if not mode:
+            mode = "cloud"
+
+        mode = mode.lower()
+        self.mode = mode
         self.enabled = bool(api_key)
         self._client = None
 
@@ -72,12 +88,35 @@ class PilotMemory:
             return
 
         try:
-            # Imported lazily so missing package is tolerated at import time
             from supermemory import Supermemory  # type: ignore
 
-            self._client = Supermemory(api_key=api_key)
+            if mode == "local":
+                base_url = os.getenv("SUPERMEMORY_LOCAL_URL", "http://localhost:6767")
+                # Health check before committing to local mode.
+                # The local server doesn't expose a /health endpoint, so we
+                # hit the root (returns 200 with HTML) or any known path
+                # (returns 404, which still proves the server is running).
+                try:
+                    import requests
+                    resp = requests.get(base_url.rstrip("/") + "/", timeout=2)
+                    # 200 (root) or 404 (any other path) both mean server is up
+                    if resp.status_code >= 500:
+                        raise ConnectionError(f"Local Supermemory returned {resp.status_code}")
+                except Exception as err:
+                    logger.debug("Local Supermemory unreachable at %s: %s", base_url, err)
+                    print(
+                        "[memory] Local Supermemory not reachable at "
+                        f"{base_url}. "
+                        "Run: npx supermemory local"
+                    )
+                    print("[memory] Memory disabled — trading continues normally")
+                    self.enabled = False
+                    return
+                self._client = Supermemory(api_key=api_key, base_url=base_url)
+            else:
+                # Cloud mode — default SDK base URL
+                self._client = Supermemory(api_key=api_key)
         except Exception as e:
-            # Import failure or constructor error — disable silently.
             logger.debug("Supermemory init failed: %s", e)
             self.enabled = False
             self._client = None
@@ -319,9 +358,14 @@ def get_memory() -> PilotMemory:
     return _singleton
 
 
-def reset_memory() -> PilotMemory:
-    """Reinitialise the singleton (used after the user sets a new API key)."""
+def reset_memory(api_key: Optional[str] = None, mode: Optional[str] = None) -> PilotMemory:
+    """Reinitialise the singleton (used after the user sets a new API key).
+
+    Args:
+        api_key: New API key, or None to re-read from env/secrets.
+        mode: "local" or "cloud", or None to re-read from env/secrets.
+    """
     global _singleton
     with _singleton_lock:
-        _singleton = PilotMemory()
+        _singleton = PilotMemory(api_key=api_key, mode=mode)
     return _singleton

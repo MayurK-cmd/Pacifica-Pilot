@@ -68,6 +68,10 @@ class ChatAgent:
         self.loop_agent_running = False
         # Optional Supermemory-backed memory. Safe to call even when disabled.
         self.memory = get_memory()
+        # Hooks for TUI integration — override these to avoid blocking input()
+        # inside a background thread. Both return True (confirmed) or False (cancelled).
+        self._confirm_hook = None  # callable(message, data) -> bool
+        self._message_hook = None  # callable(text) -> None
 
     def start(self):
         """Start the chat REPL."""
@@ -246,6 +250,14 @@ class ChatAgent:
 
 You have access to tools that let you fetch real market data, check account balances, view open positions, and execute trades.
 
+## Persistent Memory (Supermemory)
+This system has a persistent memory layer called Supermemory. When the user states a preference ("I never want to trade X", "I prefer Y", "remember this"), it is automatically saved and will be available in future sessions. When memory data is present, it will appear at the top of this prompt inside "--- MEMORY CONTEXT ---" markers.
+
+- If you see memory context at the top of this prompt, USE IT to personalise your responses.
+- When the user says "remember" or states a clear preference, tell them it's been saved.
+- When asked about past trades or preferences, the "--- MEMORY CONTEXT ---" block contains what the system knows.
+- If there is no memory context and the user asks about past interactions, say you don't have that information yet.
+
 ## Your behavior
 - Think step by step. Before answering a market question, gather the data you need with tools.
 - Use get_market_price for price/RSI/MACD/Bollinger/volume analysis.
@@ -378,16 +390,25 @@ Pacifica supports many perpetual futures markets — you can help trade ANY avai
 
                 # --- Confirmation interception for trade actions ---
                 if result.get("needs_confirmation"):
-                    # Show the preview to the user
-                    print(f"\n{result.get('message')}")
-                    if result.get("confirmation_data", {}).get("dry_run"):
-                        print("⚠️  DRY RUN MODE - No real order will be placed")
+                    # Show the preview
+                    preview = result.get("message", "")
+                    data = result.get("confirmation_data", {})
+                    dry_run = data.get("dry_run", True)
+
+                    if self._message_hook:
+                        self._message_hook(preview)
                     else:
-                        print("⚠️  LIVE TRADING - Real funds will be used")
+                        print(f"\n{preview}")
+                        print(f"{'⚠️  DRY RUN MODE - No real order' if dry_run else '⚠️  LIVE TRADING - Real funds'}")
 
-                    confirm = input("\nConfirm? (yes/no): ").strip().lower()
+                    # Use confirmation hook if set (TUI modal), else fallback to input()
+                    if self._confirm_hook:
+                        confirm = self._confirm_hook(preview, data)
+                    else:
+                        c = input("\nConfirm? (yes/no): ").strip().lower()
+                        confirm = c in ("yes", "y")
 
-                    if confirm in ("yes", "y"):
+                    if confirm:
                         exec_result = confirm_and_execute(
                             confirmation_data=result["confirmation_data"],
                             wallet_address=wallet_address,
@@ -558,6 +579,10 @@ To add/update a key:
   /apikey <provider> <key>
 
 Providers: anthropic, openai, google, openrouter, telegram, elfa, supermemory
+Supermemory syntax:
+  /apikey supermemory <key>          (cloud mode, default)
+  /apikey supermemory <key> local    (local mode - requires npx supermemory local)
+  /apikey supermemory <key> cloud    (cloud mode, explicit)
 Example: /apikey anthropic sk-ant-...
 """
         else:
@@ -583,27 +608,47 @@ Example: /apikey anthropic sk-ant-...
             if not key_name:
                 return f"Unknown provider: {provider}\nValid: {', '.join(key_names.keys())}"
 
-            update_secret(key_name, key)
+            # Non-supermemory providers: write and done
+            if provider != "supermemory":
+                update_secret(key_name, key)
+                self.secrets = load_secrets()
+                return f"✓ Updated {provider} API key"
+
+            # Supermemory: extract mode suffix, write key + mode, reinit singleton
+            pieces = key.split(maxsplit=1)
+            raw_key = pieces[0]
+            sm_mode = pieces[1].lower() if len(pieces) > 1 else None
+
+            # Guard: if the "key" looks like just a mode name, the user probably
+            # typed /apikey supermemory cloud instead of /apikey supermemory <key> cloud
+            if raw_key.lower() in ("local", "cloud"):
+                return (
+                    "⚠️  Invalid syntax. Use:\n"
+                    "  /apikey supermemory <your-key>        (cloud, default)\n"
+                    "  /apikey supermemory <your-key> local  (local mode)"
+                )
+
+            update_secret("SUPERMEMORY_API_KEY", raw_key)
+            if sm_mode in ("local", "cloud"):
+                update_secret("SUPERMEMORY_MODE", sm_mode)
+            if sm_mode == "local":
+                update_secret("SUPERMEMORY_LOCAL_URL", "http://localhost:6767")
             self.secrets = load_secrets()
 
-            # Reinitialise PilotMemory so it picks up the new key without restart
-            if provider == "supermemory":
-                try:
-                    from ..memory import reset_memory
+            try:
+                from ..memory import reset_memory
 
-                    new_memory = reset_memory()
-                    if new_memory.enabled:
-                        # Quick test call to verify the key actually works
-                        try:
-                            new_memory.recall("supermemory connection test", limit=1)
-                        except Exception:
-                            pass
-                        return "✓ Supermemory connected"
-                    return "⚠️  Key saved but Supermemory client failed to initialise. Check the key."
-                except Exception as e:
-                    return f"⚠️  Key saved but reinitialisation failed: {e}"
-
-            return f"✓ Updated {provider} API key"
+                new_memory = reset_memory(api_key=raw_key, mode=sm_mode)
+                if new_memory.enabled:
+                    try:
+                        new_memory.recall("supermemory connection test", limit=1)
+                    except Exception:
+                        pass
+                    mode_label = "local" if new_memory.mode == "local" else "cloud"
+                    return f"✓ Supermemory connected ({mode_label})"
+                return "⚠️  Key saved but Supermemory client failed to initialise. Check the key and mode."
+            except Exception as e:
+                return f"⚠️  Key saved but reinitialisation failed: {e}"
 
     def _cmd_mode(self, args: str) -> str:
         """Switch between testnet and mainnet."""
