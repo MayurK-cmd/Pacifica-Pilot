@@ -14,7 +14,7 @@ pacifica start
 
 ## Features
 
-- **Persistent memory** — Every trade, pattern, and preference stored in Supermemory across sessions
+- **Persistent memory** — Every trade, pattern, and preference stored in Supermemory across sessions (local or cloud)
 - **Agentic chat** — Multi-turn tool loop: gathers data, reasons, then responds
 - **Autonomous loop agent** — 24/7 AI-driven market monitoring
 - **9 trading tools** — place/close orders, market analysis, performance metrics, regime detection
@@ -91,8 +91,16 @@ performance  → "Daily: 3 trades, +$12.50, 67% win rate"
 ```
 
 **Two modes:**
-- Cloud: `https://app.supermemory.ai` (default)
-- Local: `npx supermemory local` (offline, zero data leaves your machine)
+
+- **Cloud** — `https://app.supermemory.ai` (default, cross-platform)
+- **Local** — `npx supermemory local` (offline, zero data leaves your machine)
+
+> **Windows users:** Supermemory's local server only works on Linux and macOS.  
+> To use local mode on Windows, install [WSL](https://learn.microsoft.com/en-us/windows/wsl/install), then inside WSL run:
+> ```bash
+> npx supermemory local
+> ```
+> Copy the API key printed in the terminal and paste it back in the setup wizard.
 
 ## Security
 
