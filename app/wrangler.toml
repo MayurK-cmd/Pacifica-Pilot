@@ -2,7 +2,6 @@ name = "pacificapilot"
 compatibility_date = "2026-07-12"
 compatibility_flags = ["nodejs_compat"]
 
-pages_build_output_dir = ".output/public"
-
-[env.production]
-compatibility_flags = ["nodejs_compat"]
+# Built with Nitro cloudflare-pages preset
+# Worker service lives in dist/_worker.js/, static assets in dist/
+pages_build_output_dir = "dist"

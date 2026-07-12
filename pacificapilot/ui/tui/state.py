@@ -55,9 +55,10 @@ class PilotState:
 
     # Prices (updated by header timer)
     btc_price: float = 0.0
-    btc_change: float = 0.0  # +1 or -1 direction
+    btc_change: float = 0.0  # +1 or -1 direction (+1 up, -1 down, 0 unchanged)
     eth_price: float = 0.0
     eth_change: float = 0.0
+    price_timestamp: float = 0.0  # unix seconds of last price update
 
     # Config
     mode: str = "testnet"
@@ -115,6 +116,7 @@ class PilotState:
                 "btc_change": self.btc_change,
                 "eth_price": self.eth_price,
                 "eth_change": self.eth_change,
+                "price_timestamp": self.price_timestamp,
                 "mode": self.mode,
                 "dry_run": self.dry_run,
                 "provider_name": self.provider_name,

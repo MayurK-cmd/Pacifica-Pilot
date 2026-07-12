@@ -1,7 +1,11 @@
 """
-Header bar widget — shows project name, mode badge, prices.
+Header bar widget — two rows.
 
-Fixed at top, refreshes prices every 30 seconds from PilotState.
+Row 1: title + mode badges + provider + prices
+Row 2: price ticker (BTC/ETH with direction arrows)
+
+All colors from pacificapilot.tcss via Rich markup.
+Prices update every 30 seconds from PilotState.
 """
 
 from __future__ import annotations
@@ -10,66 +14,72 @@ from datetime import datetime
 
 from textual.app import ComposeResult
 from textual.widgets import Static
-from textual.reactive import reactive
+from textual.widget import Widget
+from textual.containers import Horizontal
 
 from .state import get_state
 
 
-class PacificaHeader(Static):
-    """Top header bar showing project info, mode, and live prices."""
+class PacificaHeader(Widget):
+    """Two-row header: title/badges/prices + fine print."""
 
-    btc_text = reactive("")
-    eth_text = reactive("")
-    mode_text = reactive("")
-    provider_text = reactive("")
+    def __init__(self):
+        super().__init__(id="header")
+
+    def compose(self) -> ComposeResult:
+        with Horizontal(id="header-row1"):
+            yield Static(id="header-left")
+            yield Static(id="header-center")
+            yield Static(id="header-right")
+        yield Static(id="header-prices")
 
     def on_mount(self) -> None:
-        self.set_interval(30, self._refresh_prices)
-        self._refresh_prices()
-        self._refresh_mode()
+        self.set_interval(30, self._refresh)
+        self._refresh()
 
-    def _refresh_prices(self) -> None:
-        state = get_state()
-        btc = state.get("btc_price", 0)
-        eth = state.get("eth_price", 0)
-        btc_ch = state.get("btc_change", 0)
-        eth_ch = state.get("eth_change", 0)
-        btc_arrow = "▲" if btc_ch >= 0 else "▼"
-        eth_arrow = "▲" if eth_ch >= 0 else "▼"
-        btc_color = "green" if btc_ch >= 0 else "red"
-        eth_color = "green" if eth_ch >= 0 else "red"
-        self.btc_text = f"[{btc_color}]{btc_arrow} $ {btc:,.0f}[/]" if btc > 0 else ""
-        self.eth_text = f"[{eth_color}]{eth_arrow} $ {eth:,.0f}[/]" if eth > 0 else ""
+    def _refresh(self) -> None:
+        """Refresh all header content from PilotState."""
+        s = get_state().to_dict()
 
-    def _refresh_mode(self) -> None:
-        state = get_state()
-        mode = state.get("mode", "testnet")
-        dry_run = state.get("dry_run", True)
-        provider = state.get("provider_name", "n/a")
-        mode_color = "green" if mode == "testnet" else "red"
-        dry_color = "green" if dry_run else "yellow"
-        self.mode_text = f"[{mode_color}]{mode.upper()}[/] [bold]{'DRY RUN: ON' if dry_run else 'DRY RUN: OFF'}[/]"
-        self.provider_text = f"[dim]{provider}[/]"
+        # ── Left: title + version ──
+        self.query_one("#header-left", Static).update(
+            "[bold #3b82f6]PacificaPilot[/] [dim #475569]v0.1.0[/]"
+        )
 
-    def watch_btc_text(self, val: str) -> None:
-        self.refresh()
+        # ── Center: badges ──
+        mode = s.get("mode", "testnet")
+        dry_run = s.get("dry_run", True)
+        provider = s.get("provider_name", "n/a")
+        badges = []
+        if mode == "testnet":
+            badges.append("[#3b82f6 bold on #0f1f3d] TESTNET [/]")
+        else:
+            badges.append("[#ef4444 bold on #3f0f0f] MAINNET [/]")
+        if dry_run:
+            badges.append("[#22c55e on #0f2f1a] DRY:ON [/]")
+        else:
+            badges.append("[#f59e0b bold on #3f2a0f] DRY:OFF [/]")
+        badges.append(f"[dim #475569]{provider}[/]")
+        self.query_one("#header-center", Static).update("  ".join(badges))
 
-    def watch_eth_text(self, val: str) -> None:
-        self.refresh()
-
-    def render(self) -> str:
+        # ── Right: time ──
         now = datetime.now().strftime("%H:%M:%S")
-        parts = [
-            f"[bold]PacificaPilot[/]",
-            f"[dim]{now}[/]",
-            f"[reverse] {self.mode_text} [/]",
-            f"{self.provider_text}",
-        ]
-        prices = []
-        if self.btc_text:
-            prices.append(f"BTC {self.btc_text}")
-        if self.eth_text:
-            prices.append(f"ETH {self.eth_text}")
-        if prices:
-            parts.append("  ".join(prices))
-        return "  |  ".join(parts)
+        self.query_one("#header-right", Static).update(f"[dim #475569]{now}[/]")
+
+        # ── Price line ──
+        btc = s.get("btc_price", 0)
+        eth = s.get("eth_price", 0)
+        btc_ch = s.get("btc_change", 0)
+        eth_ch = s.get("eth_change", 0)
+        parts = []
+        if btc > 0:
+            arrow = "▲" if btc_ch >= 0 else "▼"
+            color = "#22c55e" if btc_ch >= 0 else "#ef4444"
+            parts.append(f"[dim #475569]BTC[/] [#93c5fd]$ {btc:,.0f}[/] [{color}]{arrow}[/]")
+        if eth > 0:
+            arrow = "▲" if eth_ch >= 0 else "▼"
+            color = "#22c55e" if eth_ch >= 0 else "#ef4444"
+            parts.append(f"[dim #475569]ETH[/] [#93c5fd]$ {eth:,.0f}[/] [{color}]{arrow}[/]")
+        self.query_one("#header-prices", Static).update(
+            "  ".join(parts) if parts else "[dim #1e3a5f]no price data[/]"
+        )

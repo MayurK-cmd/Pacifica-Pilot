@@ -36,7 +36,7 @@ def main():
             start_repl()
             return
 
-        # Launch the Textual TUI
+        # Launch the Textual TUI with visual overhaul
         try:
             from .ui.tui.app import PacificaPilotApp
             app = PacificaPilotApp()

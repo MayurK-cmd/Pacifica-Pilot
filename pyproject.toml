@@ -64,6 +64,9 @@ Repository = "https://github.com/yourusername/pacificapilot"
 [tool.setuptools]
 packages = ["pacificapilot", "pacificapilot.core", "pacificapilot.storage", "pacificapilot.providers", "pacificapilot.agents", "pacificapilot.telegram", "pacificapilot.memo", "pacificapilot.ui", "pacificapilot.ui.tui", "pacificapilot.memory"]
 
+[tool.setuptools.package-data]
+pacificapilot = ["*.tcss"]
+
 [tool.black]
 line-length = 100
 target-version = ['py311']
