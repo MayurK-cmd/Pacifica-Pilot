@@ -26,7 +26,7 @@ export function Navbar() {
             Integrations
           </Link>
           <a
-            href="https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
+            href="https://youtu.be/XSp-tUbp6i8"
             target="_blank"
             rel="noreferrer"
             className="hover:text-foreground transition-colors"
