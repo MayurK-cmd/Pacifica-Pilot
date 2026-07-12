@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [
-    {name = "PacificaPilot Team"}
+    {name = "Mayur Kulkarni",email = "mayurgk2006@gmail.com"}
 ]
 keywords = ["trading", "ai", "pacifica", "solana", "perpetual-futures"]
 classifiers = [
