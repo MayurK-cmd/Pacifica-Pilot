@@ -1,0 +1,8 @@
+name = "pacificapilot"
+compatibility_date = "2026-07-12"
+compatibility_flags = ["nodejs_compat"]
+
+pages_build_output_dir = ".output/public"
+
+[env.production]
+compatibility_flags = ["nodejs_compat"]
