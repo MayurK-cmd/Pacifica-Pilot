@@ -18,7 +18,7 @@ export function Footer() {
           <ul className="space-y-2 text-muted-foreground">
             <li><Link to="/docs" className="hover:text-foreground">Documentation</Link></li>
             <li><Link to="/integrations" className="hover:text-foreground">Integrations</Link></li>
-            <li><a href="https://github.com" target="_blank" rel="noreferrer" className="hover:text-foreground">GitHub</a></li>
+            <li><a href="https://github.com/MayurK-cmd/Pacifica-Pilot" target="_blank" rel="noreferrer" className="hover:text-foreground">GitHub</a></li>
           </ul>
         </div>
         <div>

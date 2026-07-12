@@ -26,7 +26,15 @@ export function Navbar() {
             Integrations
           </Link>
           <a
-            href="https://github.com"
+            href="https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
+            target="_blank"
+            rel="noreferrer"
+            className="hover:text-foreground transition-colors"
+          >
+            Demo
+          </a>
+          <a
+            href="https://github.com/MayurK-cmd/Pacifica-Pilot"
             target="_blank"
             rel="noreferrer"
             className="hover:text-foreground transition-colors"
@@ -38,7 +46,7 @@ export function Navbar() {
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <a
-            href="https://github.com"
+            href="https://github.com/MayurK-cmd/Pacifica-Pilot"
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded border border-border text-xs text-foreground hover:border-foreground/30 transition-colors"
