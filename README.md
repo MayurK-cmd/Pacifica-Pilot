@@ -6,6 +6,8 @@
 [![Python](https://img.shields.io/badge/python-3.11+-green.svg)](https://python.org)
 [![Status](https://img.shields.io/badge/status-active--development-brightgreen.svg)]()
 
+[![YouTube](https://img.shields.io/badge/Watch-Demo-red?logo=youtube)](https://youtu.be/XSp-tUbp6i8)
+
 ```bash
 pip install pacificapilot
 pacifica init
