@@ -202,11 +202,69 @@ def run_setup_wizard():
     memory_key = None
     memory_mode = None
     if memory_choice == "local":
-        print("\n  In a separate terminal, run:  npx supermemory local")
-        print("  It prints an API key on first boot.\n")
+        import subprocess, time, sys as _sys, shutil, urllib.request as _req, webbrowser
+
+        print("\n  ── Setting up Supermemory Local ──")
+
+        # 1. Check if supermemory command exists
+        supermem_cmd = shutil.which("supermemory")
+        if supermem_cmd:
+            print(f"  ✓ Supermemory found")
+        else:
+            print("  Installing Supermemory CLI via npm...")
+            try:
+                r = subprocess.run(
+                    ["npm", "install", "-g", "supermemory"],
+                    capture_output=True, text=True, timeout=120,
+                    shell=_sys.platform == "win32",
+                )
+                ok = r.returncode == 0
+            except Exception:
+                ok = False
+            if not ok:
+                print("  ⚠ npm install failed — will use npx instead (no install needed)")
+                supermem_cmd = "npx"
+            else:
+                supermem_cmd = "supermemory"
+                print("  ✓ Supermemory CLI installed")
+
+        # 2. Check if server already running
+        server_running = False
+        try:
+            _req.urlopen("http://localhost:6767", timeout=2)
+            server_running = True
+            print("  ✓ Supermemory server already running")
+        except Exception:
+            pass
+
+        # 3. Start the server if not running
+        if not server_running:
+            print("  Starting Supermemory local server...")
+            try:
+                cmd = " ".join(
+                    [supermem_cmd] if supermem_cmd and supermem_cmd != "npx" else ["npx", "supermemory"]
+                ) + " local"
+                if _sys.platform == "win32":
+                    subprocess.Popen(cmd, shell=True, creationflags=subprocess.CREATE_NEW_CONSOLE)
+                else:
+                    subprocess.Popen(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                time.sleep(3)
+                print("  ✓ Server started")
+            except Exception as e:
+                print(f"  ⚠ Could not auto-start: {e}")
+
+        # 4. Ask user to visit and grab the key
+        print("\n  → Open http://localhost:6767 in your browser")
+        print("  → The page shows your API key — copy and paste it below\n")
+        try:
+            webbrowser.open("http://localhost:6767")
+        except Exception:
+            pass
+
         memory_key = inquirer.secret(
-            message="Supermemory API key:",
+            message="Paste your Supermemory API key:",
             validate=lambda x: len(x) > 5 or "Key too short",
+            long_instruction="Open http://localhost:6767 in your browser and copy the API key shown there.",
             style=PILOT_STYLE,
         ).execute()
         memory_mode = "local"
