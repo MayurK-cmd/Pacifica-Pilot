@@ -33,14 +33,7 @@ export function Navbar() {
           >
             Demo
           </a>
-          <a
-            href="https://github.com/MayurK-cmd/Pacifica-Pilot"
-            target="_blank"
-            rel="noreferrer"
-            className="hover:text-foreground transition-colors"
-          >
-            GitHub
-          </a>
+          
         </nav>
 
         <div className="flex items-center gap-2">
