@@ -287,6 +287,8 @@ class PacificaPilotApp(App):
                 chat.add_agent_message("Telegram mode: /remote enable | disable")
             elif cmd in ("/exit", "/quit"):
                 self.action_quit_confirm()
+            elif cmd in ("/clear",):
+                self.action_clear_chat()
             else:
                 chat.add_agent_message(f"Unknown command: {cmd}\nType /help to see available commands.")
         except Exception as e:
@@ -364,8 +366,10 @@ class PacificaPilotApp(App):
         from .input_bar import SLASH_COMMANDS
         lines = ["[bold]Available commands:[/]\n"]
         for item in SLASH_COMMANDS:
-            cmd = item.main
-            desc = item.prompt if hasattr(item, "prompt") else ""
+            # main and prefix are textual.content.Content objects
+            cmd = item.main.plain if hasattr(item.main, "plain") else str(item.main)
+            raw = item.prefix if hasattr(item, "prefix") and item.prefix else ""
+            desc = raw.plain if hasattr(raw, "plain") else str(raw)
             lines.append(f"  [bold]{cmd:15}[/] [dim]{desc}[/]")
         lines.append("")
         lines.append("[dim]Also type anything in natural language to chat with the AI agent.[/]")

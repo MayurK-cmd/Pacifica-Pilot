@@ -39,6 +39,7 @@ SLASH_COMMANDS = [
     DropdownItem("/resume",      prefix="Resume the Loop Agent"),
     DropdownItem("/loop",        prefix="Alias for /resume and /pause: /loop on | off"),
     DropdownItem("/remote",      prefix="Enable or disable Telegram remote mode"),
+    DropdownItem("/clear",       prefix="Clear the chat panel"),
     DropdownItem("/help",        prefix="Show all available commands"),
     DropdownItem("/exit",        prefix="Quit PacificaPilot"),
 ]
