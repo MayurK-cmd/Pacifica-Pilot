@@ -258,8 +258,9 @@ def fetch_pacifica_price(symbol: str) -> Optional[dict]:
     """
     try:
         # Try fetching single symbol first
+        from .urls import get_base_url
         r = _session.get(
-            "https://test-api.pacifica.fi/api/v1/info/prices",
+            f"{get_base_url()}/info/prices",
             params={"symbol": symbol},
             timeout=5
         )

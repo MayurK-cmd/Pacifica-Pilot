@@ -14,7 +14,7 @@ import requests
 from solders.keypair import Keypair
 from solders.pubkey import Pubkey
 
-BASE_URL = "https://test-api.pacifica.fi/api/v1"
+from .urls import get_base_url
 
 _session = requests.Session()
 _session.headers.update({
@@ -33,9 +33,15 @@ def place_order(
     order_type: str = "market",
     slippage_pct: float = 0.5,
     dry_run: bool = True,
+    limit_price: Optional[float] = None,
+    time_in_force: str = "GTC",
 ) -> dict:
     """
     Place a market or limit order on Pacifica.
+
+    Market orders use POST /api/v1/orders/create_market (op "create_market_order").
+    Limit orders use POST /api/v1/orders/create (op "create_order") and require
+    limit_price.
 
     Args:
         symbol: Market symbol (e.g., "BTC", "ETH")
@@ -45,8 +51,10 @@ def place_order(
         agent_keypair: Agent's keypair (if delegated signing is used)
         mark_price: Current mark price for quantity calculation
         order_type: "market" or "limit"
-        slippage_pct: Slippage tolerance percentage
+        slippage_pct: Slippage tolerance percentage (market orders only)
         dry_run: If True, skip actual order placement
+        limit_price: Required when order_type="limit"
+        time_in_force: "GTC" (default), "IOC", "ALO", or "TOB" (limit orders)
 
     Returns:
         {
@@ -58,6 +66,15 @@ def place_order(
             "dry_run": bool,
         }
     """
+    if order_type not in ("market", "limit"):
+        return {
+            "success": False,
+            "order_id": None,
+            "quantity": 0,
+            "avg_price": None,
+            "message": f"Invalid order_type {order_type!r}. Use 'market' or 'limit'",
+            "dry_run": dry_run,
+        }
     if usdc_size <= 0:
         return {
             "success": False,
@@ -93,8 +110,31 @@ def place_order(
             "dry_run": dry_run,
         }
 
+    # Reference price depends on order type (limit orders size off limit_price)
+    ref_price = limit_price if order_type == "limit" else mark_price
+    if order_type == "limit":
+        if limit_price is None or limit_price <= 0:
+            return {
+                "success": False,
+                "order_id": None,
+                "quantity": 0,
+                "avg_price": None,
+                "message": "limit_price is required for limit orders",
+                "dry_run": dry_run,
+            }
+        tif = time_in_force.upper()
+        if tif not in VALID_TIF:
+            return {
+                "success": False,
+                "order_id": None,
+                "quantity": 0,
+                "avg_price": None,
+                "message": f"Invalid time_in_force {time_in_force!r}. Valid: {', '.join(VALID_TIF)}",
+                "dry_run": dry_run,
+            }
+
     # Calculate quantity from USDC size
-    quantity = (usdc_size / mark_price)
+    quantity = (usdc_size / ref_price)
     quantity = round(quantity / lot_size) * lot_size
 
     if quantity <= 0:
@@ -108,6 +148,15 @@ def place_order(
         }
 
     if dry_run:
+        if order_type == "limit":
+            return {
+                "success": True,
+                "order_id": f"dry-limit-{uuid.uuid4().hex[:8]}",
+                "quantity": quantity,
+                "avg_price": limit_price,
+                "message": f"[DRY RUN] Would place LIMIT {side.upper()} {quantity} {symbol} @ ${limit_price:,.2f}",
+                "dry_run": True,
+            }
         return {
             "success": True,
             "order_id": f"dry-{uuid.uuid4().hex[:8]}",
@@ -121,21 +170,37 @@ def place_order(
     timestamp = int(time.time() * 1000)
     order_id = str(uuid.uuid4())
 
-    # Operation data (the actual order fields)
-    operation_data = {
-        "symbol": symbol,
-        "amount": str(quantity),
-        "side": side,  # "bid" or "ask"
-        "slippage_percent": str(slippage_pct),
-        "reduce_only": False,
-        "client_order_id": order_id,
-    }
+    if order_type == "limit":
+        # POST /api/v1/orders/create, signing op type "create_order"
+        endpoint = "orders/create"
+        operation_data = {
+            "symbol": symbol,
+            "price": str(limit_price),
+            "amount": str(quantity),
+            "side": side,  # "bid" or "ask"
+            "tif": tif,
+            "reduce_only": False,
+            "client_order_id": order_id,
+        }
+        op_type = "create_order"
+    else:
+        # POST /api/v1/orders/create_market, signing op "create_market_order"
+        endpoint = "orders/create_market"
+        operation_data = {
+            "symbol": symbol,
+            "amount": str(quantity),
+            "side": side,  # "bid" or "ask"
+            "slippage_percent": str(slippage_pct),
+            "reduce_only": False,
+            "client_order_id": order_id,
+        }
+        op_type = "create_market_order"
 
     # Signature header
     signature_header = {
         "timestamp": timestamp,
         "expiry_window": 30000,
-        "type": "create_market_order",
+        "type": op_type,
     }
 
     # Build, sort, and sign the message
@@ -157,10 +222,8 @@ def place_order(
     }
 
     try:
-        # Correct Pacifica endpoint: /api/v1/orders/create_market
-        endpoint = "orders/create_market" if order_type == "market" else "orders/create"
         r = requests.post(
-            f"{BASE_URL}/{endpoint}",
+            f"{get_base_url()}/{endpoint}",
             json=final_request,
             headers=headers,
             timeout=15,
@@ -168,12 +231,33 @@ def place_order(
         r.raise_for_status()
         result = r.json()
 
-        # Response: {"order_id": 12345, ...}
+        # Response is only {"order_id": 12345} — read the real fill back
+        # from order history instead of assuming the pre-trade price.
+        placed_id = str(result.get("order_id", order_id))
+        avg_price = ref_price
+        fill_status: Optional[str] = None
+        filled_amount = 0.0
+        try:
+            fill = get_order_fill(
+                str(keypair.pubkey()),
+                order_id=placed_id,
+                client_order_id=order_id,
+                symbol=symbol,
+            )
+            fill_status = fill.get("order_status")
+            filled_amount = fill.get("filled_amount", 0.0)
+            if fill.get("average_filled_price"):
+                avg_price = fill["average_filled_price"]
+        except Exception:
+            pass
+
         return {
             "success": True,
-            "order_id": str(result.get("order_id", order_id)),
+            "order_id": placed_id,
             "quantity": quantity,
-            "avg_price": float(result.get("avg_price", mark_price)),
+            "avg_price": avg_price,
+            "fill_status": fill_status,
+            "filled_amount": filled_amount,
             "message": f"Order placed: {side.upper()} {quantity} {symbol}",
             "dry_run": False,
         }
@@ -207,6 +291,10 @@ def place_order(
         }
 
 
+# Time-in-force values accepted by POST /api/v1/orders/create per docs.
+VALID_TIF = ("GTC", "IOC", "ALO", "TOB")
+
+
 def place_limit_order(
     symbol: str,
     side: str,
@@ -216,9 +304,13 @@ def place_limit_order(
     agent_keypair: Keypair,
     dry_run: bool = True,
     time_in_force: str = "GTC",
+    reduce_only: bool = False,
 ) -> dict:
     """
     Place a limit order on Pacifica at a specific price.
+
+    Uses POST /api/v1/orders/create (signing op type "create_order") with the
+    same signed-envelope scheme as market orders — NOT a separate endpoint.
 
     Args:
         symbol: Market symbol (e.g., "BTC", "ETH")
@@ -228,7 +320,8 @@ def place_limit_order(
         keypair: User's Solana keypair for signing
         agent_keypair: Agent's keypair (if delegated signing is used)
         dry_run: If True, skip actual order placement
-        time_in_force: "GTC" (Good Till Cancel), "IOC" (Immediate or Cancel), "FOK" (Fill or Kill)
+        time_in_force: "GTC" (default), "IOC", "ALO", or "TOB" per API docs
+        reduce_only: If True, order can only reduce an existing position
 
     Returns:
         {
@@ -299,36 +392,58 @@ def place_limit_order(
             "dry_run": True,
         }
 
-    # Build and sign limit order request
+    tif = time_in_force.upper()
+    if tif not in VALID_TIF:
+        return {
+            "success": False,
+            "order_id": None,
+            "quantity": quantity,
+            "limit_price": limit_price,
+            "message": f"Invalid time_in_force {time_in_force!r}. Valid: {', '.join(VALID_TIF)}",
+            "dry_run": dry_run,
+        }
+
+    # Build and sign limit order request per Pacifica spec:
+    # POST /api/v1/orders/create, signing op type "create_order".
     timestamp = int(time.time() * 1000)
     order_id = str(uuid.uuid4())
 
-    order_payload = {
+    operation_data = {
         "symbol": symbol,
-        "side": side,
-        "quantity": str(quantity),
         "price": str(limit_price),
-        "order_type": "limit",
-        "time_in_force": time_in_force,
+        "amount": str(quantity),
+        "side": side,  # "bid" or "ask"
+        "tif": tif,
+        "reduce_only": reduce_only,
         "client_order_id": order_id,
-        "timestamp": timestamp,
     }
 
-    # Sign with user's keypair
-    message_to_sign = _build_order_message(order_payload)
+    signature_header = {
+        "timestamp": timestamp,
+        "expiry_window": 30000,
+        "type": "create_order",
+    }
+
+    message_to_sign = _build_order_message({**signature_header, "data": operation_data})
     signature = _sign_message(message_to_sign, keypair)
+
+    final_request = {
+        "account": str(keypair.pubkey()),
+        "signature": signature,
+        "timestamp": timestamp,
+        "expiry_window": 30000,
+        **operation_data,
+    }
 
     headers = {
         **_session.headers,
-        "PF-SIGNATURE": signature,
-        "PF-PUBLIC-KEY": str(keypair.pubkey()),
-        "PF-TIMESTAMP": str(timestamp),
+        "Content-Type": "application/json",
     }
 
     try:
         r = requests.post(
-            f"{BASE_URL}/limit-order",
-            json=order_payload,
+            f"{get_base_url()}/orders/create",
+            json=final_request,
             headers=headers,
             timeout=15,
         )
@@ -337,7 +452,7 @@ def place_limit_order(
 
         return {
             "success": True,
-            "order_id": result.get("order_id", order_id),
+            "order_id": str(result.get("order_id", order_id)),
             "quantity": quantity,
             "limit_price": limit_price,
             "message": f"Limit order placed: {side.upper()} {quantity} {symbol} @ ${limit_price:,.2f}",
@@ -433,7 +548,7 @@ def close_position(
 
     try:
         r = requests.post(
-            f"{BASE_URL}/orders/create_market",
+            f"{get_base_url()}/orders/create_market",
             json=final_request,
             headers={**_session.headers, "Content-Type": "application/json"},
             timeout=15,
@@ -441,9 +556,23 @@ def close_position(
         r.raise_for_status()
         result = r.json()
 
+        placed_id = str(result.get("order_id", order_id))
+        fill_status: Optional[str] = None
+        try:
+            fill = get_order_fill(
+                str(keypair.pubkey()),
+                order_id=placed_id,
+                client_order_id=order_id,
+                symbol=symbol,
+            )
+            fill_status = fill.get("order_status")
+        except Exception:
+            pass
+
         return {
             "success": True,
-            "order_id": str(result.get("order_id", order_id)),
+            "order_id": placed_id,
+            "fill_status": fill_status,
             "message": f"Position closed: {close_side.upper()} {quantity} {symbol}",
             "dry_run": False,
         }
@@ -454,6 +583,92 @@ def close_position(
             "message": f"Close failed: {str(e)}",
             "dry_run": False,
         }
+
+
+def get_order_fill(
+    account_address: str,
+    order_id: Optional[str] = None,
+    client_order_id: Optional[str] = None,
+    symbol: Optional[str] = None,
+    attempts: int = 3,
+    wait_secs: float = 0.6,
+) -> dict:
+    """
+    Look up an order's actual fill via GET /api/v1/orders/history.
+
+    The create-order endpoints return only {"order_id": ...}, so the real
+    average fill price must be read back. Market orders are subject to a
+    ~200ms matching delay, hence the short retry loop.
+
+    Args:
+        account_address: Wallet address that placed the order
+        order_id: Exchange order id (int or str) to match
+        client_order_id: Client UUID to match (prefer when available)
+        symbol: Optional symbol filter to reduce scanning
+        attempts: How many history reads to attempt
+        wait_secs: Sleep between attempts
+
+    Returns:
+        {
+            "found": bool,
+            "average_filled_price": float | None,  # VWAP, None if unfilled/unknown
+            "filled_amount": float,
+            "order_status": str | None,  # open|partially_filled|filled|cancelled|rejected
+            "order_type": str | None,
+        }
+    """
+    empty = {
+        "found": False,
+        "average_filled_price": None,
+        "filled_amount": 0.0,
+        "order_status": None,
+        "order_type": None,
+    }
+    if order_id is None and client_order_id is None:
+        return empty
+
+    for _ in range(max(1, attempts)):
+        try:
+            r = _session.get(
+                f"{get_base_url()}/orders/history",
+                params={"account": account_address, "limit": 100},
+                timeout=10,
+            )
+            r.raise_for_status()
+            orders = r.json().get("data", [])
+        except Exception:
+            orders = []
+
+        for o in orders:
+            if symbol and o.get("symbol") != symbol:
+                continue
+            if client_order_id and o.get("client_order_id") == client_order_id:
+                match = True
+            elif order_id is not None and str(o.get("order_id")) == str(order_id):
+                match = True
+            else:
+                continue
+            if match:
+                try:
+                    avg = float(o.get("average_filled_price", 0) or 0)
+                except (TypeError, ValueError):
+                    avg = 0.0
+                try:
+                    filled = float(o.get("filled_amount", 0) or 0)
+                except (TypeError, ValueError):
+                    filled = 0.0
+                return {
+                    "found": True,
+                    "average_filled_price": avg if avg > 0 else None,
+                    "filled_amount": filled,
+                    "order_status": o.get("order_status"),
+                    "order_type": o.get("order_type"),
+                }
+
+        if wait_secs > 0:
+            time.sleep(wait_secs)
+
+    return empty
 
 
 def get_open_positions(wallet_address: str) -> dict:
@@ -483,7 +698,7 @@ def get_open_positions(wallet_address: str) -> dict:
     try:
         # GET endpoint - no signing needed, but no empty body allowed
         r = _session.get(
-            f"{BASE_URL}/positions",
+            f"{get_base_url()}/positions",
             params={"account": wallet_address},
             timeout=10,
         )
@@ -556,7 +771,7 @@ def get_account_info(wallet_address: str) -> Optional[dict]:
         }
     """
     try:
-        r = _session.get(f"{BASE_URL}/account", params={"account": wallet_address}, timeout=10)
+        r = _session.get(f"{get_base_url()}/account", params={"account": wallet_address}, timeout=10)
         r.raise_for_status()
         data = r.json().get("data", {})
 
@@ -663,7 +878,7 @@ def compute_pnl(
 def _get_market_info(symbol: str) -> Optional[dict]:
     """Fetch market info (lot size, tick size, min order size) from Pacifica."""
     try:
-        r = _session.get(f"{BASE_URL}/info", timeout=10)
+        r = _session.get(f"{get_base_url()}/info", timeout=10)
         r.raise_for_status()
         data = r.json().get("data", [])
 

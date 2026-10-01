@@ -5,12 +5,18 @@ This module is pure logic with no agent-specific concerns. Both Loop Agent and C
 call into these functions.
 """
 
+from .urls import (
+    get_base_url,
+    PACIFICA_TESTNET_URL,
+    PACIFICA_MAINNET_URL,
+)
 from .trading import (
     place_order,
     place_limit_order,
     close_position,
     get_open_positions,
     get_account_info,
+    get_order_fill,
     should_exit_position,
     compute_pnl,
 )
@@ -61,12 +67,17 @@ from .pacifica_api import (
 )
 
 __all__ = [
+    # URLs / environment
+    "get_base_url",
+    "PACIFICA_TESTNET_URL",
+    "PACIFICA_MAINNET_URL",
     # Trading
     "place_order",
     "place_limit_order",
     "close_position",
     "get_open_positions",
     "get_account_info",
+    "get_order_fill",
     "should_exit_position",
     "compute_pnl",
     # Market data

@@ -7,7 +7,7 @@ Implements missing endpoints: trade history, equity history, funding history, ba
 from typing import Optional, List
 import requests
 
-BASE_URL = "https://test-api.pacifica.fi/api/v1"
+from .urls import get_base_url
 
 _session = requests.Session()
 _session.headers.update({
@@ -16,27 +16,82 @@ _session.headers.update({
 })
 
 
-def get_trade_history(wallet_address: str, limit: int = 100) -> Optional[List[dict]]:
+def _paginate_cursor(
+    path: str,
+    params: dict,
+    limit: int,
+    timeout: int = 10,
+) -> List[dict]:
+    """
+    Follow Pacifica cursor pagination (next_cursor/has_more) until `limit`
+    records are collected or the cursor is exhausted.
+    """
+    items: List[dict] = []
+    cursor = None
+    while len(items) < limit:
+        page_params = dict(params)
+        page_params["limit"] = min(limit - len(items), 100)
+        if cursor:
+            page_params["cursor"] = cursor
+        r = _session.get(f"{get_base_url()}{path}", params=page_params, timeout=timeout)
+        r.raise_for_status()
+        data = r.json()
+        batch = data.get("data", [])
+        if not isinstance(batch, list):
+            break
+        items.extend(batch)
+        if not data.get("has_more") or not data.get("next_cursor"):
+            break
+        cursor = data["next_cursor"]
+    return items[:limit]
+
+
+# Live trade-event sides per docs (GET /trades/history).
+# open_long/open_short = position opened; close_long/close_short = closed.
+TRADE_SIDE_TO_DIRECTION = {
+    "open_long": "LONG",
+    "close_long": "LONG",
+    "open_short": "SHORT",
+    "close_short": "SHORT",
+    "bid": "LONG",  # legacy/back-compat
+    "ask": "SHORT",
+}
+
+
+def get_trade_history(
+    wallet_address: str,
+    limit: int = 100,
+    symbol: Optional[str] = None,
+) -> Optional[List[dict]]:
     """
     Fetch trade history from Pacifica API.
 
     Uses GET /api/v1/trades/history?account=... (no signing required for GET).
+    Follows cursor pagination. Each record carries:
+    symbol, side (open_long/open_short/close_long/close_short), amount,
+    price, entry_price, fee, pnl, event_type, created_at.
 
     Returns actual executed trades with PnL data from Pacifica.
     """
     try:
-        r = _session.get(
-            f"{BASE_URL}/trades/history",
-            params={"account": wallet_address, "limit": limit},
-            timeout=10
-        )
-        r.raise_for_status()
-        data = r.json()
-        return data.get("data", [])
+        params = {"account": wallet_address}
+        if symbol:
+            params["symbol"] = symbol
+        return _paginate_cursor("/trades/history", params, limit)
     except Exception as e:
         import sys
         print(f"[get_trade_history] Error: {e}", file=sys.stderr)
         return None
+
+
+def _time_range_cutoff_ms(time_range: str) -> Optional[int]:
+    """Convert a range label to an epoch-ms cutoff, or None for 'all'."""
+    import time
+
+    days = {"24h": 1, "1d": 1, "7d": 7, "14d": 14, "30d": 30}.get(time_range.lower())
+    if days is None:
+        return None  # "all" or unknown -> no cutoff
+    return int(time.time() * 1000) - days * 86_400_000
 
 
 def get_account_equity_history(
@@ -46,9 +101,11 @@ def get_account_equity_history(
     """
     Fetch account equity and PnL history from Pacifica.
 
-    Uses GET /api/v1/account/balance/history?account=... which returns
-    balance events (deposits, trades, funding, etc). We compute equity
-    and PnL from the balance changes over time.
+    Primary source is GET /api/v1/portfolio?account=...&time_range=...
+    (valid ranges: 1d, 7d, 14d, 30d, all), which returns
+    [{account_equity, pnl, timestamp}, ...] directly. Falls back to
+    reconstructing equity from GET /api/v1/account/balance/history
+    balance events when the portfolio endpoint is unavailable.
 
     Args:
         wallet_address: Wallet address
@@ -60,33 +117,70 @@ def get_account_equity_history(
             "summary": {"total_pnl": float, "total_return_pct": float}
         }
     """
+    normalized = time_range.lower()
+    if normalized in ("24h",):
+        normalized = "1d"
+    if normalized not in ("1d", "7d", "14d", "30d", "all"):
+        normalized = "7d"
+
+    # Preferred: dedicated portfolio endpoint with server-side PnL.
     try:
         r = _session.get(
-            f"{BASE_URL}/account/balance/history",
-            params={"account": wallet_address},
-            timeout=10
+            f"{get_base_url()}/portfolio",
+            params={"account": wallet_address, "time_range": normalized},
+            timeout=10,
         )
         r.raise_for_status()
-        response = r.json()
-        records = response.get("data", [])
+        points = r.json().get("data", [])
+        if isinstance(points, list) and points:
+            equity_history = [
+                {
+                    "timestamp": p.get("timestamp", 0),
+                    "equity": float(p.get("account_equity", 0)),
+                    "pnl": float(p.get("pnl", 0)),
+                }
+                for p in points
+            ]
+            last = equity_history[-1]
+            first_equity = equity_history[0]["equity"]
+            total_pnl = last["pnl"]
+            total_return_pct = (total_pnl / first_equity * 100) if first_equity > 0 else 0
+            return {
+                "equity_history": equity_history,
+                "summary": {
+                    "total_pnl": total_pnl,
+                    "total_return_pct": total_return_pct,
+                },
+            }
+    except Exception:
+        pass  # fall through to balance-history reconstruction
 
-        if not records or not isinstance(records, list):
+    # Fallback: rebuild equity from balance events (client-side time filter —
+    # the endpoint accepts only account/limit/cursor, no time_range).
+    try:
+        records = _paginate_cursor(
+            "/account/balance/history", {"account": wallet_address}, 500
+        )
+        if not records:
             return None
 
-        # Build equity history from balance events
+        cutoff = _time_range_cutoff_ms(normalized)
         equity_history = []
         for record in records:
-            balance = float(record.get("balance", 0))
-            pending = float(record.get("pending_balance", 0))
             created_at = record.get("created_at", 0)
-
+            if cutoff and created_at and created_at < cutoff:
+                continue
+            try:
+                balance = float(record.get("balance", 0))
+            except (TypeError, ValueError):
+                continue
             equity_history.append({
                 "timestamp": created_at,
                 "equity": balance,
                 "pnl": 0,  # individual pnl not tracked per event
             })
 
-        # Compute summary - pnl = current balance - first balance
+        equity_history.sort(key=lambda e: e["timestamp"])
         if len(equity_history) >= 2:
             first_balance = equity_history[0]["equity"]
             last_balance = equity_history[-1]["equity"]
@@ -117,27 +211,28 @@ def get_funding_history(
     """
     Fetch funding payment history from Pacifica.
 
+    Uses GET /api/v1/funding/history?account=...&limit=...&cursor=...
+    (the endpoint takes `account`, not `wallet`, and has no symbol filter —
+    symbol is applied client-side). Follows cursor pagination.
+
     Args:
         wallet_address: Wallet address
-        symbol: Optional symbol filter
+        symbol: Optional symbol filter (applied locally)
         limit: Max number of payments to return
 
     Returns:
-        List of funding payments with timestamp, symbol, rate, payment amount
+        List of funding payments: history_id, symbol, side (bid/ask),
+        amount, payout (USD), rate, created_at.
     """
     try:
-        params = {"wallet": wallet_address, "limit": limit}
-        if symbol:
-            params["symbol"] = symbol
-
-        r = _session.get(
-            f"{BASE_URL}/funding/history",
-            params=params,
-            timeout=10
+        # Over-fetch when filtering by symbol so the limit still holds.
+        fetch_limit = limit * 3 if symbol else limit
+        records = _paginate_cursor(
+            "/funding/history", {"account": wallet_address}, fetch_limit
         )
-        r.raise_for_status()
-        data = r.json()
-        return data.get("data", [])
+        if symbol:
+            records = [r for r in records if r.get("symbol") == symbol]
+        return records[:limit]
     except Exception:
         return None
 
@@ -149,17 +244,18 @@ def get_account_balance_history(
     """
     Fetch account balance history from Pacifica.
 
+    GET /api/v1/account/balance/history accepts only account/limit/cursor,
+    so time_range is applied as a client-side created_at filter.
     Tracks deposits, withdrawals, and balance changes over time.
     """
     try:
-        r = _session.get(
-            f"{BASE_URL}/account/balance/history",
-            params={"account": wallet_address, "time_range": time_range},
-            timeout=10
+        records = _paginate_cursor(
+            "/account/balance/history", {"account": wallet_address}, 500
         )
-        r.raise_for_status()
-        data = r.json()
-        return data.get("data", {})
+        cutoff = _time_range_cutoff_ms(time_range)
+        if cutoff:
+            records = [r for r in records if (r.get("created_at") or 0) >= cutoff]
+        return {"data": records}
     except Exception:
         return None
 
@@ -176,7 +272,7 @@ def get_market_prices(symbol: Optional[str] = None) -> Optional[dict]:
             params["symbol"] = symbol
 
         r = _session.get(
-            f"{BASE_URL}/info/prices",
+            f"{get_base_url()}/info/prices",
             params=params,
             timeout=10
         )

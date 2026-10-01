@@ -409,18 +409,21 @@ def cmd_account_impl(console, args: list, PACIFICA_BLUE, PACIFICA_MUTED, PACIFIC
             table.add_column("Size", style=PACIFICA_FG, justify="right")
             table.add_column("PnL", style=PACIFICA_FG, justify="right")
 
+            from ..core.pacifica_api import TRADE_SIDE_TO_DIRECTION
+
             for trade in trade_data[:10]:
                 symbol = trade.get("symbol", "UNKNOWN")
-                side = trade.get("side", "UNKNOWN").upper()
-                size = float(trade.get("size", 0))
-                pnl = float(trade.get("pnl", 0))
+                raw_side = str(trade.get("side", "unknown"))
+                direction = TRADE_SIDE_TO_DIRECTION.get(raw_side, raw_side.upper())
+                size = float(trade.get("amount", 0) or trade.get("size", 0) or 0)
+                pnl = float(trade.get("pnl", 0) or 0)
 
-                side_color = PACIFICA_GREEN if side == "BID" else PACIFICA_RED
+                side_color = PACIFICA_GREEN if direction == "LONG" else PACIFICA_RED if direction == "SHORT" else PACIFICA_FG
                 pnl_color = PACIFICA_GREEN if pnl >= 0 else PACIFICA_RED
 
                 table.add_row(
                     symbol,
-                    f"[{side_color}]{side}[/{side_color}]",
+                    f"[{side_color}]{direction}[/{side_color}]",
                     f"{size:.4f}",
                     f"[{pnl_color}]${pnl:,.2f}[/{pnl_color}]"
                 )
@@ -439,15 +442,16 @@ def cmd_account_impl(console, args: list, PACIFICA_BLUE, PACIFICA_MUTED, PACIFIC
 
             for payment in funding_data[:5]:
                 symbol = payment.get("symbol", "UNKNOWN")
-                rate = float(payment.get("rate", 0))
-                amount = float(payment.get("amount", 0))
+                rate = float(payment.get("rate", 0) or 0)
+                # `payout` is the USD payment; `amount` is the position size.
+                payout = float(payment.get("payout", 0) or 0)
 
-                payment_color = PACIFICA_GREEN if amount >= 0 else PACIFICA_RED
+                payment_color = PACIFICA_GREEN if payout >= 0 else PACIFICA_RED
 
                 table.add_row(
                     symbol,
                     f"{rate:.6f}",
-                    f"[{payment_color}]${amount:,.2f}[/{payment_color}]"
+                    f"[{payment_color}]${payout:,.2f}[/{payment_color}]"
                 )
 
             console.print(table)

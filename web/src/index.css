@@ -1,0 +1,80 @@
+@import "@solana/wallet-adapter-react-ui/styles.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Light-first trading terminal: white/off-white, thin borders, compact cards.
+   Dark theme via `dark` class on <html> (toggled in header, persisted). */
+:root {
+  color-scheme: light;
+  --ink: 17 24 39;
+  --muted: 107 114 128;
+  --line: 229 231 235;
+  --paper: 255 255 255;
+  --wash: 248 250 252;
+  --up: 21 128 61;
+  --down: 185 28 28;
+  --warn: 180 83 9;
+}
+
+html.dark {
+  color-scheme: dark;
+  --ink: 226 232 240;
+  --muted: 148 163 184;
+  --line: 30 41 59;
+  --paper: 15 23 42;
+  --wash: 2 6 23;
+  --up: 74 222 128;
+  --down: 248 113 113;
+  --warn: 251 191 36;
+}
+
+body {
+  @apply bg-wash text-ink antialiased;
+  font-feature-settings: "tnum" 1, "cv05" 1;
+}
+
+.card {
+  @apply rounded-md border border-line bg-paper shadow-[0_1px_2px_rgba(16,24,40,0.05)];
+}
+
+.card-pad {
+  @apply p-4;
+}
+
+.eyebrow {
+  @apply text-[11px] font-semibold uppercase tracking-[0.08em] text-muted;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid #0d9488;
+  outline-offset: 2px;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Wallet-adapter connect button, matched to the light terminal theme.
+   (Upstream styles are dark by default; only the trigger is re-skinned —
+   the modal keeps upstream styling for readability.) */
+.pp-wallet-btn .wallet-adapter-button {
+  background: #111827;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  height: 28px;
+  line-height: 28px;
+  padding: 0 12px;
+  border-radius: 6px;
+}
+.pp-wallet-btn .wallet-adapter-button:hover {
+  background: #1f2937;
+}
+.pp-wallet-btn .wallet-adapter-button:not([disabled]):hover {
+  background: #1f2937;
+}

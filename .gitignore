@@ -1,9 +1,14 @@
 .aider*
 .claude/
 docs
+opencode.json
+package-lock.json
+package.json
 
 # Node
 node_modules/
+.mcp.json
+.env
 
 # Python
 __pycache__/

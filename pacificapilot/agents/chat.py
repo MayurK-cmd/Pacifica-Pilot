@@ -958,21 +958,30 @@ Recent decisions:
                 lines.append(f"  Total PnL: {sign}${total_pnl:,.2f} ({sign}{total_return:.2f}%)")
                 lines.append("")
 
-        # Fetch trade history for volume
+        # Fetch trade history for volume (live fields: price/entry_price, amount)
         trades = get_trade_history(wallet_address, limit=100)
         if trades:
-            total_volume = sum(
-                abs(t.get('entry_price', 0) * t.get('quantity', 0))
-                for t in trades
-            )
+            total_volume = 0.0
+            for t in trades:
+                try:
+                    price = float(t.get('price', 0) or t.get('entry_price', 0) or 0)
+                    amount = float(t.get('amount', 0) or t.get('quantity', 0) or 0)
+                    total_volume += abs(price * amount)
+                except (TypeError, ValueError):
+                    pass
             lines.append(f"Trading Activity ({len(trades)} trades):")
             lines.append(f"  Total Trading Volume: ${total_volume:,.2f}")
             lines.append("")
 
-        # Fetch funding history
+        # Fetch funding history (live field is `payout`, decimal string)
         funding = get_funding_history(wallet_address, limit=10)
         if funding:
-            total_funding = sum(f.get('payment', 0) for f in funding)
+            total_funding = 0.0
+            for f in funding:
+                try:
+                    total_funding += float(f.get('payout', 0) or 0)
+                except (TypeError, ValueError):
+                    pass
             sign = "+" if total_funding >= 0 else ""
             lines.append(f"Funding Payments (last {len(funding)}):")
             lines.append(f"  Total Funding: {sign}${total_funding:,.2f}")
