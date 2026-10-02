@@ -213,6 +213,16 @@ export function Docs() {
           stopping and commanding the agent happen in the terminal (<code>pacifica init</code>,{" "}
           <code>pacifica start</code>) or Telegram — never here.
         </P>
+        <P>
+          The dashboard's <strong>Agents page</strong> adds a separate, deliberately limited
+          intelligence chat: an OpenRouter-powered Q&A agent (default model{" "}
+          <code>cohere/north-mini-code:free</code>, configurable) that answers setup, token and
+          market questions using live Pacifica, CoinGecko and Elfa data through tools, with a
+          rules prompt that keeps it read-only and educational. It needs an{" "}
+          <code>OPENROUTER_API_KEY</code> on the local gateway, keeps conversation sessions so
+          follow-ups work, and also offers a one-click daily digest of the last 24 hours. It is a
+          research assistant, not the trading agent, and it cannot place orders.
+        </P>
       </Section>
 
       <Section id="risks" title="Risks (read this first)">

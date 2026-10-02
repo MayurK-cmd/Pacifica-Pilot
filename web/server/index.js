@@ -813,75 +813,153 @@ app.get("/api/funding", async (req, res) => {
   }
 });
 
-// ---- intelligence chat (Elfa /v2/chat proxied, key stays server-side) ----
+// ---- intelligence chat: OpenRouter agent + live-data tools ----
 // Read-only Q&A: trade-setup ideas, token explainers, market overviews.
-// This is NOT the trading agent and cannot place orders.
+// This is NOT the trading agent and cannot place orders. The OpenRouter key
+// stays server-side; Elfa is used only as a data source (mentions/trends),
+// never as the chat brain.
+let _intelAgent = null;
+async function intelAgent() {
+  if (!_intelAgent) _intelAgent = await import("./intel-agent.js");
+  return _intelAgent;
+}
+
+const OPENROUTER_KEY = process.env.OPENROUTER_API_KEY ?? "";
+const INTEL_MODEL = process.env.INTEL_MODEL ?? "cohere/north-mini-code:free";
+const intelSessions = new Map(); // sessionId -> [{role, content}]
+
 const CHAT_ACTIONS = {
   setup: {
-    analysisType: "chat",
     prompt: (symbol) =>
       `Suggest a trade setup for ${symbol} on perpetual futures: bias, entry zone, ` +
       `invalidation, take-profit levels and key risks. Educational analysis only.`,
   },
-  explain: { analysisType: "tokenIntro", needsSymbol: true },
-  markets: { analysisType: "macro" },
-  summary: { analysisType: "summary" },
+  explain: {
+    needsSymbol: true,
+    prompt: (symbol) => `Explain the ${symbol} token: what it is, what it does, key risks.`,
+  },
+  markets: {
+    prompt: () => `Give a macro crypto market overview: direction, breadth, outliers, narratives.`,
+  },
+  summary: {
+    prompt: () => `Give a quick crypto market summary: direction, top movers, what matters today.`,
+  },
 };
 
+// Live-data tools close over this gateway's own fetchers (cached, server-side).
+function buildIntelTools() {
+  return {
+    get_market: async ({ symbol }) => {
+      const sym = String(symbol ?? "").toUpperCase();
+      const [prices, tech, score] = await Promise.all([
+        cached("pac:prices", 15_000, pacificaPrices).catch(() => []),
+        fetch(`http://localhost:${PORT}/api/technicals/${encodeURIComponent(sym)}`)
+          .then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        fetch(`http://localhost:${PORT}/api/score/${encodeURIComponent(sym)}`)
+          .then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      ]);
+      const m = prices.find((x) => x.symbol === sym) ?? null;
+      return { market: m, technicals: tech, score };
+    },
+    get_token_social: async ({ symbol }) => {
+      const sym = String(symbol ?? "").toUpperCase();
+      return fetch(`http://localhost:${PORT}/api/social/${encodeURIComponent(sym)}`)
+        .then((r) => (r.ok ? r.json() : { unavailable: true })).catch(() => ({ unavailable: true }));
+    },
+    get_market_breadth: async () => {
+      const [global, cgMarkets, pacifica] = await Promise.all([
+        cached("cg:global", 300_000, () =>
+          fetchJson(`${CG_BASE}/global`, { headers: cgHeaders() }),
+        ).catch(() => null),
+        cached("cg:markets:100", 120_000, () =>
+          fetchJson(
+            `${CG_BASE}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=24h`,
+            { headers: cgHeaders() },
+          ),
+        ).catch(() => []),
+        cached("pac:prices", 15_000, pacificaPrices).catch(() => []),
+      ]);
+      const coins = Array.isArray(cgMarkets) ? cgMarkets : [];
+      const withChg = coins.filter((c) => typeof c.price_change_percentage_24h_in_currency === "number");
+      const top = (arr) => arr.slice(0, 5).map((c) => ({
+        symbol: String(c.symbol).toUpperCase(),
+        change24hPct: c.price_change_percentage_24h_in_currency,
+        price: num(c.current_price),
+      }));
+      return {
+        totalMarketCap: num(global?.data?.total_market_cap?.usd),
+        marketCapChange24hPct: num(global?.data?.market_cap_change_percentage_24h_usd),
+        btcDominancePct: num(global?.data?.market_cap_percentage?.btc),
+        gainers: top([...withChg].sort((a, b) => b.price_change_percentage_24h_in_currency - a.price_change_percentage_24h_in_currency)),
+        losers: top([...withChg].sort((a, b) => a.price_change_percentage_24h_in_currency - b.price_change_percentage_24h_in_currency)),
+        perpMovers: (pacifica ?? [])
+          .filter((m) => m.change24hPct !== null && !/[-/]/.test(m.symbol))
+          .sort((a, b) => Math.abs(b.change24hPct) - Math.abs(a.change24hPct))
+          .slice(0, 5)
+          .map((m) => ({ symbol: m.symbol, change24hPct: m.change24hPct, funding: m.funding })),
+      };
+    },
+    get_narratives: async () => {
+      if (!ELFA_KEY) return { unavailable: true, narratives: [] };
+      try {
+        const n = await cached("elfa:narr", 600_000, elfaNarratives);
+        return { narratives: (n?.data?.trending_narratives ?? []).slice(0, 5).map((x) => x.narrative) };
+      } catch {
+        return { unavailable: true, narratives: [] };
+      }
+    },
+  };
+}
+
 app.post("/api/agents/chat", async (req, res) => {
-  const { message, action, symbol, sessionId, speed } = req.body ?? {};
-  if (!ELFA_KEY) {
-    return errJson(res, 503, "Intelligence chat unavailable — ELFA_API_KEY not configured on the gateway.", {
+  const { message, action, symbol, sessionId } = req.body ?? {};
+  if (!OPENROUTER_KEY) {
+    return errJson(res, 503, "Intelligence chat unavailable — OPENROUTER_API_KEY not configured on the gateway (web/server/.env).", {
       unavailable: true,
     });
   }
   const act = CHAT_ACTIONS[action] ?? null;
-  let analysisType = "chat";
   let text = typeof message === "string" ? message.trim() : "";
-  let assetMetadata;
   if (act) {
-    analysisType = act.analysisType;
     if (act.needsSymbol) {
       if (!symbol) return errJson(res, 400, "This action needs a token symbol (e.g. {\"action\":\"explain\",\"symbol\":\"SOL\"}).");
-      assetMetadata = { symbol: String(symbol).toUpperCase() };
-    } else if (act.prompt) {
-      text = act.prompt(symbol ? String(symbol).toUpperCase() : "BTC");
+      text = act.prompt(String(symbol).toUpperCase());
+    } else {
+      text = act.prompt(symbol ? String(symbol).toUpperCase() : undefined);
     }
   }
   if (!text) return errJson(res, 400, "Provide a message or a valid action.");
   if (text.length > 2000) return errJson(res, 400, "Message too long (max 2000 chars).");
   try {
-    const body = {
+    const agent = await intelAgent();
+    const sid = typeof sessionId === "string" && intelSessions.has(sessionId)
+      ? sessionId
+      : agent.newSessionId();
+    const history = intelSessions.get(sid) ?? [];
+    const { reply, history: updated } = await agent.runIntelTurn({
+      apiKey: OPENROUTER_KEY,
+      model: INTEL_MODEL,
+      history,
       message: text,
-      analysisType,
-      speed: speed === "fast" ? "fast" : "expert",
-    };
-    if (sessionId) body.sessionId = String(sessionId);
-    if (assetMetadata) body.assetMetadata = assetMetadata;
-    // POST with a JSON body (fetchJson helper is GET-only).
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 60000);
-    let data;
-    try {
-      const r = await fetch(`${ELFA_BASE}/chat`, {
-        method: "POST",
-        headers: { ...UA, ...elfaHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-        signal: ctrl.signal,
-      });
-      if (!r.ok) throw new Error(`Elfa chat ${r.status}`);
-      data = await r.json();
-    } finally {
-      clearTimeout(t);
-    }
-    if (!data?.success) throw new Error("Elfa returned success=false");
-    res.json({
-      reply: data.data.message,
-      sessionId: data.data.sessionId ?? null,
-      creditsConsumed: data.data.creditsConsumed ?? null,
+      tools: buildIntelTools(),
     });
-  } catch {
-    errJson(res, 503, "Intelligence chat unavailable (Elfa error).", { unavailable: true });
+    intelSessions.set(sid, updated.slice(-20));
+    if (intelSessions.size > 100) intelSessions.delete(intelSessions.keys().next().value);
+    res.json({ reply, sessionId: sid, creditsConsumed: null, model: INTEL_MODEL });
+  } catch (e) {
+    // Upstream status travels inside the thrown message ("OpenRouter <code>").
+    const msg = e && e.message ? String(e.message) : "";
+    const found = /OpenRouter (\d{3})/.exec(msg);
+    const code = found ? found[1] : "";
+    const hint =
+      code === "401" || code === "403"
+        ? "OpenRouter rejected the key (check OPENROUTER_API_KEY in web/server/.env)."
+        : code === "429"
+          ? "OpenRouter rate limit hit — wait a minute and retry."
+          : code === "402"
+            ? "OpenRouter out of credits — top up at openrouter.ai."
+            : "Intelligence chat unavailable (upstream error).";
+    errJson(res, 503, hint, { unavailable: true });
   }
 });
 

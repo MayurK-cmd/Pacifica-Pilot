@@ -223,6 +223,7 @@ export interface IntelReply {
   reply: string;
   sessionId: string | null;
   creditsConsumed: number | null;
+  model?: string | null;
 }
 
 export interface ChatMessage {

@@ -78,6 +78,7 @@ function DigestCard({ digest }: { digest: DailyDigest }) {
 export function Agents() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [model, setModel] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [symbol, setSymbol] = useState("BTC");
   const [busy, setBusy] = useState(false);
@@ -102,6 +103,7 @@ export function Agents() {
     try {
       const r = await askIntel({ message: text, action, symbol: sym, sessionId });
       if (r.sessionId) setSessionId(r.sessionId);
+      if (r.model) setModel(r.model);
       setMessages((m) => [...m, { role: "assistant", text: r.reply, creditsConsumed: r.creditsConsumed }]);
     } catch (e) {
       if (e instanceof GatewayError && e.unavailable) setChatUnavailable(true);
@@ -148,9 +150,9 @@ export function Agents() {
         </button>
       </div>
       <p className="text-xs text-muted">
-        Ask about setups, tokens and market structure. Answers come from Elfa social + market
-        intelligence — read-only, educational, not financial advice. This chat cannot trade;
-        trading stays in the terminal and Telegram.
+        Ask about setups, tokens and market structure. An OpenRouter-powered agent answers using
+        live Pacifica, CoinGecko and Elfa data — read-only, educational, not financial advice.
+        This chat cannot trade; trading stays in the terminal and Telegram.
       </p>
 
       {digest && <DigestCard digest={digest} />}
@@ -217,10 +219,13 @@ export function Agents() {
 
       {chatUnavailable ? (
         <Card title="Conversation">
-          <Empty text="Intelligence chat is unavailable — the gateway has no Elfa API key configured. The daily digest above still works from CoinGecko + Pacifica data." />
+          <Empty text="Intelligence chat is unavailable — the gateway has no OpenRouter API key configured (web/server/.env). The daily digest above still works from CoinGecko + Pacifica data." />
         </Card>
       ) : (
-        <Card title={sessionId ? "Conversation (continued)" : "Conversation"}>
+        <Card
+          title={sessionId ? "Conversation (continued)" : "Conversation"}
+          action={model ? <span className="font-mono text-[10px] text-muted">{model}</span> : undefined}
+        >
           {messages.length === 0 && !busy && <Empty text="No messages yet — pick an action or ask anything." />}
           <div className="space-y-3">
             {messages.map((m, i) => (
