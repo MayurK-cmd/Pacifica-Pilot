@@ -1,111 +1,107 @@
 import { useState } from "react";
-import { Outlet } from "react-router-dom";
-import { Menu, Wallet } from "lucide-react";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Menu, Moon, Sun } from "lucide-react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { Sidebar } from "./Sidebar";
-import { Header } from "./Header";
+import JellyRadio from "../JellyRadio.jsx";
+import GlassSurface from "../GlassSurface.jsx";
+import { useTheme, useThemeToggle } from "../../lib/theme";
+
+const links = [
+  { value: "/dashboard", label: "Dashboard" },
+  { value: "/markets", label: "Markets" },
+  { value: "/portfolio", label: "Portfolio" },
+  { value: "/agents", label: "Agents" },
+  { value: "/docs", label: "Docs" },
+];
 
 export function AppShell() {
-  // Watch-only fallback for users without a wallet extension.
-  const [manual, setManual] = useState(() => localStorage.getItem("pp-account") ?? "");
-  const [draft, setDraft] = useState(manual);
   const [navOpen, setNavOpen] = useState(false);
-  const { publicKey, connected } = useWallet();
+  const { publicKey } = useWallet();
+  const theme = useTheme();
+  const toggleTheme = useThemeToggle();
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
 
-  // Connected wallet wins; otherwise fall back to the saved watch address.
-  // Read-only in both cases — the browser never signs or sends keys.
-  const account = publicKey ? publicKey.toBase58() : manual;
+  // Connected wallet address, if any. Read-only — the browser never signs.
+  const account = publicKey ? publicKey.toBase58() : "";
+  const current =
+    links.find((l) => pathname === l.value || pathname.startsWith(`${l.value}/`))?.label ?? "Dashboard";
 
-  function saveManual(e: React.FormEvent) {
-    e.preventDefault();
-    const v = draft.trim();
-    setManual(v);
-    if (v) localStorage.setItem("pp-account", v);
-    else localStorage.removeItem("pp-account");
-  }
+  const jelly = (onPick?: () => void) => (
+    <JellyRadio
+      items={links.map((l) => l.label)}
+      value={current}
+      defaultValue="Dashboard"
+      onChange={(label: string) => {
+        const link = links.find((l) => l.label === label);
+        if (link) {
+          navigate(link.value);
+          onPick?.();
+        }
+      }}
+      chipColor={theme === "dark" ? "#18181b" : "#f1f5f9"}
+      activeColor="#2563eb"
+      textColor={theme === "dark" ? "#a1a1aa" : "#475569"}
+      activeTextColor="#ffffff"
+      size="sm"
+      ariaLabel="Primary"
+    />
+  );
 
   return (
     <div className="min-h-screen">
-      <div className="mx-auto flex max-w-[1440px]">
-        <aside className="hidden w-56 shrink-0 border-r border-line bg-paper md:block" aria-label="Sidebar">
-          <div className="sticky top-0">
-            <Sidebar />
-          </div>
-        </aside>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 border-b border-line bg-paper px-3 py-1 md:hidden">
-            <button
-              type="button"
-              className="rounded border border-line p-1.5"
-              aria-label="Toggle navigation"
-              onClick={() => setNavOpen((v) => !v)}
-            >
-              <Menu size={16} />
-            </button>
-            <span className="text-xs font-bold tracking-wide">PACIFICA PILOT</span>
-          </div>
-          {navOpen && (
-            <div className="border-b border-line bg-paper md:hidden">
-              <Sidebar />
+      <div className="sticky top-3 z-40 mx-auto flex max-w-[1440px] items-center gap-3 px-4">
+        <Link to="/" className="shrink-0 text-[13px] font-bold tracking-wide">
+          PACIFICA PILOT
+        </Link>
+        <header className="min-w-0 flex-1 overflow-hidden rounded-2xl border border-line">
+          <GlassSurface
+            width={"100%" as unknown as number}
+            height={"100%" as unknown as number}
+            borderRadius={16}
+            brightness={40}
+            opacity={0.85}
+          >
+            <div className="relative hidden items-center justify-center py-1.5 md:flex">
+              {jelly()}
             </div>
-          )}
-          <Header account={account} />
-          <div className="flex flex-wrap items-center gap-2 border-b border-line bg-paper px-4 py-2">
-            <Wallet className="text-muted" size={14} aria-hidden />
-            <span className="text-xs font-semibold text-muted">
-              {connected && publicKey
-                ? `Connected ${publicKey.toBase58().slice(0, 4)}…${publicKey.toBase58().slice(-4)} — portfolio reads Pacifica for this address`
-                : "Connect a Solana wallet — portfolio reads Pacifica for its address"}
-            </span>
-            <span className="pp-wallet-btn ml-auto">
-              <WalletMultiButton />
-            </span>
-            <details className="w-full text-xs">
-              <summary className="cursor-pointer text-muted hover:text-ink">
-                Or watch an address without connecting
-              </summary>
-              <form onSubmit={saveManual} className="mt-1 flex flex-wrap items-center gap-2">
-                <label htmlFor="pp-account" className="sr-only">
-                  Pacifica account address (read-only)
-                </label>
-                <input
-                  id="pp-account"
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  placeholder="e.g. 42trU9A5…"
-                  autoComplete="off"
-                  spellCheck={false}
-                  disabled={connected}
-                  className="w-72 max-w-full rounded border border-line bg-paper px-2 py-1 font-mono text-xs disabled:opacity-50"
-                />
-                <button
-                  type="submit"
-                  disabled={connected}
-                  className="rounded bg-slate-900 px-3 py-1 text-xs font-semibold text-white disabled:opacity-50 dark:bg-slate-100 dark:text-slate-900"
-                >
-                  {manual ? "Update" : "Watch"}
-                </button>
-                {manual && !connected && (
-                  <button
-                    type="button"
-                    className="rounded border border-line px-3 py-1 text-xs font-semibold"
-                    onClick={() => {
-                      setManual("");
-                      setDraft("");
-                      localStorage.removeItem("pp-account");
-                    }}
-                  >
-                    Clear
-                  </button>
-                )}
-              </form>
-            </details>
-          </div>
-          <main className="p-3 md:p-4">
-            <Outlet context={{ account }} />
-          </main>
+            <div className="relative flex items-center gap-2 px-3 py-1.5 md:hidden">
+              <button
+                type="button"
+                className="rounded border border-line p-1.5"
+                aria-label="Toggle navigation"
+                onClick={() => setNavOpen((v) => !v)}
+              >
+                <Menu size={16} />
+              </button>
+              <span className="text-xs text-muted">{current}</span>
+            </div>
+          </GlassSurface>
+        </header>
+        <span className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
+            className="rounded border border-line p-1.5 text-muted hover:text-ink"
+          >
+            {theme === "light" ? <Moon size={14} aria-hidden /> : <Sun size={14} aria-hidden />}
+          </button>
+          <span className="pp-wallet-btn">
+            <WalletMultiButton />
+          </span>
+        </span>
+      </div>
+      {navOpen && (
+        <div className="mx-auto max-w-[1440px] px-4 pt-2 md:hidden">
+          <div className="[&_.jelly-radio]:flex-wrap [&_.jelly-radio]:p-1">{jelly(() => setNavOpen(false))}</div>
         </div>
+      )}
+      <div className="mx-auto max-w-[1440px]">
+        <main className="p-3 md:p-4">
+          <Outlet context={{ account }} />
+        </main>
       </div>
     </div>
   );

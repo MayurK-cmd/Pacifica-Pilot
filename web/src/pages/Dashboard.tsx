@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import type { ShellContext } from "../components/layout/AppShell";
-import { MarketStrip } from "../components/dashboard/MarketStrip";
+import { MarketBreadth, MarketHeatmap, TopVolume } from "../components/dashboard/MarketOverview";
 import { OverviewCards } from "../components/dashboard/OverviewCards";
 import { AssetChart } from "../components/dashboard/AssetChart";
 import { PacificaScore } from "../components/dashboard/PacificaScore";
@@ -26,8 +26,14 @@ export function Dashboard() {
 
   return (
     <div className="space-y-3">
-      <MarketStrip symbols={watchlist} />
+      <div className="grid gap-3 xl:grid-cols-3">
+        <div className="xl:col-span-2">
+          <MarketBreadth />
+        </div>
+        <TopVolume />
+      </div>
       <OverviewCards account={account} />
+      <MarketHeatmap />
       <div className="grid gap-3 xl:grid-cols-3">
         <div className="space-y-3 xl:col-span-2">
           <div className="flex items-center gap-1 text-xs" role="group" aria-label="Focus asset">

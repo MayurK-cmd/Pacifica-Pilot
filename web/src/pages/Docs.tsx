@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { Card } from "../components/ui/Card";
+import LineSidebar from "../components/LineSidebar.jsx";
+import { useTheme } from "../lib/theme";
 import { MarketStructureDiagram } from "../components/illustrations/MarketStructureDiagram";
 import { CandleDiagram } from "../components/illustrations/CandleDiagram";
 
@@ -12,11 +13,12 @@ const toc = [
   ["charts", "How to read charts"],
   ["pilot", "How PacificaPilot works"],
   ["risks", "Risks (read this first)"],
+  ["faq", "Quick questions"],
 ];
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
-    <section id={id} aria-label={title} className="card card-pad scroll-mt-4">
+    <section id={id} aria-label={title} className="scroll-mt-4 border-t border-line pt-6">
       <h2 className="text-base font-bold">{title}</h2>
       <div className="mt-2 space-y-2 text-[13px] leading-relaxed text-ink/90">{children}</div>
     </section>
@@ -28,8 +30,25 @@ function P({ children }: { children: React.ReactNode }) {
 }
 
 export function Docs() {
+  const theme = useTheme();
+  const jump = (index: number) => {
+    document.getElementById(toc[index][0])?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   return (
-    <div className="space-y-3">
+    <div className="gap-4 md:flex md:items-start">
+      <aside className="mb-3 shrink-0 md:sticky md:top-4 md:w-52" aria-label="Docs sections">
+        <div className="border-b border-line pb-4 md:border-b-0 md:pb-0">
+          <LineSidebar
+            items={toc.map(([, label]) => label)}
+            onItemClick={jump}
+            accentColor="#60a5fa"
+            textColor={theme === "dark" ? "#94a3b8" : "#64748b"}
+            showIndex={false}
+            fontSize={0.85}
+          />
+        </div>
+      </aside>
+      <div className="min-w-0 flex-1 space-y-3">
       <div>
         <h2 className="text-lg font-bold">Docs — learn to trade</h2>
         <p className="text-xs text-muted">
@@ -37,20 +56,6 @@ export function Docs() {
           PacificaPilot actually does. Educational only — not financial advice.
         </p>
       </div>
-
-      <Card title="Contents">
-        <nav aria-label="Docs sections">
-          <ol className="grid gap-1 text-[13px] sm:grid-cols-2">
-            {toc.map(([id, label]) => (
-              <li key={id}>
-                <a href={`#${id}`} className="font-medium text-teal hover:underline">
-                  {label}
-                </a>
-              </li>
-            ))}
-          </ol>
-        </nav>
-      </Card>
 
       <Section id="cex" title="What is a CEX?">
         <P>
@@ -92,7 +97,7 @@ export function Docs() {
           matching engine being fair and available, and on the smart contracts being correct. In
           return you get order books, leverage and conditional orders without giving up custody.
         </P>
-        <div className="card card-pad mt-2">
+        <div className="mt-2">
           <MarketStructureDiagram />
         </div>
       </Section>
@@ -112,6 +117,17 @@ export function Docs() {
           <strong>account equity, margin usage and liquidation price</strong> (shown on the{" "}
           <Link to="/portfolio" className="text-teal hover:underline">Portfolio</Link> page).
         </P>
+        <figure className="overflow-hidden rounded-md border border-line">
+          <img
+            src="/images/pacifica-perp-chart.png"
+            alt="Pacifica perpetual futures trading screen: price chart, order book and order ticket"
+            loading="lazy"
+            className="h-auto w-full"
+          />
+          <figcaption className="border-t border-line bg-wash px-4 py-2 text-[11px] text-muted">
+            The real Pacifica trading screen — chart, order-book depth and the order ticket.
+          </figcaption>
+        </figure>
       </Section>
 
       <Section id="trading" title="Trading crypto: the basics">
@@ -145,7 +161,7 @@ export function Docs() {
       </Section>
 
       <Section id="charts" title="How to read charts">
-        <div className="card card-pad">
+        <div>
           <CandleDiagram />
         </div>
         <P>
@@ -223,6 +239,28 @@ export function Docs() {
           follow-ups work, and also offers a one-click daily digest of the last 24 hours. It is a
           research assistant, not the trading agent, and it cannot place orders.
         </P>
+        <figure className="overflow-hidden rounded-md border border-line">
+          <img
+            src="/images/architecture.png"
+            alt="PacificaPilot architecture: terminal agents, trading core, AI providers, Pacifica DEX and memory"
+            loading="lazy"
+            className="h-auto w-full"
+          />
+          <figcaption className="border-t border-line bg-wash px-4 py-2 text-[11px] text-muted">
+            How the pieces fit: terminal agents, shared trading core, AI providers, Pacifica and memory.
+          </figcaption>
+        </figure>
+        <figure className="overflow-hidden rounded-md border border-line">
+          <img
+            src="/images/terminal.png"
+            alt="PacificaPilot terminal: chat panel, live positions sidebar and command input"
+            loading="lazy"
+            className="h-auto w-full"
+          />
+          <figcaption className="border-t border-line bg-wash px-4 py-2 text-[11px] text-muted">
+            The terminal itself: natural-language chat, live sidebar and slash commands. Trading lives here — not in the browser.
+          </figcaption>
+        </figure>
       </Section>
 
       <Section id="risks" title="Risks (read this first)">
@@ -238,6 +276,65 @@ export function Docs() {
           you need. This software is experimental and educational.
         </P>
       </Section>
+
+      <Section id="faq" title="Quick questions">
+        <P>
+          <strong>How much money do I need to start?</strong> On testnet, nothing real — funds are
+          play money. On mainnet, start with an amount you could lose entirely; position sizes are
+          capped by your own max-position setting.
+        </P>
+        <P>
+          <strong>What fees will I pay?</strong> Pacifica charges maker/taker fees per fill (visible
+          on your account), plus hourly funding payments when your side is crowded. This dashboard
+          itself charges nothing.
+        </P>
+        <P>
+          <strong>Can I lose more than I deposit?</strong> On isolated positions, no — the position
+          is liquidated before that. Understand cross-margin before using it, since one bad position
+          can drag the whole account.
+        </P>
+        <P>
+          <strong>How do I close a position?</strong> In the terminal agent ("close my BTC
+          position", confirmed), on the Pacifica exchange itself, or — once set — by your
+          take-profit and stop-loss triggers firing automatically.
+        </P>
+        <P>
+          <strong>Why did my order fill at a different price?</strong> Slippage: the price moved
+          between quoting and matching, or your size ate into the book. Limit orders avoid this by
+          resting at your price — at the cost of possibly never filling.
+        </P>
+        <P>
+          <strong>What is a CEX, in one line?</strong> A company-run exchange that holds your funds
+          and matches trades on its own servers — fast and easy, but you trust them with custody.
+          See the <a href="#cex" className="text-teal hover:underline">full section</a>.
+        </P>
+        <P>
+          <strong>What is a DEX, in one line?</strong> Smart contracts you trade with straight from
+          your wallet — full self-custody, but you pay chain fees and wait for confirmations. See
+          the <a href="#dex" className="text-teal hover:underline">full section</a>.
+        </P>
+        <P>
+          <strong>What is leverage, really?</strong> Borrowed exposure: 5x turns a 4% move into 20%
+          on your collateral — in either direction. It does not change the market, only the size of
+          your wins and losses relative to what you posted.
+        </P>
+        <P>
+          <strong>What is a funding rate?</strong> An hourly payment between longs and shorts that
+          keeps perp prices tethered to spot. When longs dominate, longs pay shorts — so extreme
+          funding tells you which side is crowded.
+        </P>
+        <P>
+          <strong>What is liquidation?</strong> The exchange force-closing your position because
+          losses ate through your margin cushion. It happens automatically at your liquidation
+          price — which is why the Portfolio page shows it next to every position.
+        </P>
+        <P>
+          <strong>How do I actually start?</strong> Install the CLI (<code>pip install
+          pacificapilot</code>), run the setup wizard (<code>pacifica init</code>), stay on testnet
+          with paper trading, and use this dashboard to watch while the terminal does the work.
+        </P>
+      </Section>
+      </div>
     </div>
   );
 }

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useOutletContext } from "react-router-dom";
+import RubberSegment from "../components/RubberSegment.jsx";
+import { useTheme } from "../lib/theme";
 import type { ShellContext } from "../components/layout/AppShell";
 import { OpenPositions } from "../components/dashboard/OpenPositions";
 import { EquityCurve, PerformanceSummary, PortfolioOverview } from "../components/portfolio/PortfolioPanels";
@@ -10,6 +12,7 @@ type Tab = (typeof TABS)[number];
 
 export function Portfolio() {
   const { account } = useOutletContext<ShellContext>();
+  const theme = useTheme();
   const [tab, setTab] = useState<Tab>("Positions");
   const [range, setRange] = useState("30D");
 
@@ -38,21 +41,20 @@ export function Portfolio() {
         )}
       </div>
       <PortfolioOverview account={account} />
-      <div className="flex flex-wrap gap-1 border-b border-line" role="tablist" aria-label="Portfolio sections">
-        {TABS.map((t) => (
-          <button
-            key={t}
-            type="button"
-            role="tab"
-            aria-selected={tab === t}
-            onClick={() => setTab(t)}
-            className={`px-3 py-1.5 text-xs font-semibold ${
-              tab === t ? "border-b-2 border-teal text-ink" : "text-muted hover:text-ink"
-            }`}
-          >
-            {t}
-          </button>
-        ))}
+      <div className="w-full" role="tablist" aria-label="Portfolio sections">
+        <RubberSegment
+          className="w-full"
+          items={[...TABS]}
+          value={tab}
+          defaultValue={TABS[0]}
+          onChange={(v: string) => setTab(v as Tab)}
+          trackColor={theme === "dark" ? "#1e293b" : "#f1f5f9"}
+          thumbColor="#2563eb"
+          textColor={theme === "dark" ? "#94a3b8" : "#64748b"}
+          activeTextColor="#ffffff"
+          size="sm"
+          aria-label="Portfolio sections"
+        />
       </div>
       {tab === "Positions" && <OpenPositions account={account} />}
       {tab === "Open Orders" && <OpenOrdersTable account={account} />}
