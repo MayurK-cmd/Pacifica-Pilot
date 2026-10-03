@@ -132,7 +132,7 @@ export function Landing() {
           <p className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: BLUE_TEXT }}>
             PacificaPilot web — read-only dashboard
           </p>
-          <h1 className="mt-3 max-w-3xl text-4xl font-bold leading-[1.05] tracking-tight text-white md:text-6xl">
+          <h1 className="mt-3 max-w-3xl font-display text-4xl leading-[1.05] tracking-tight text-white md:text-6xl">
             Watch the market. Watch the agent. Touch nothing.
           </h1>
           <p className="mt-5 max-w-2xl text-sm leading-relaxed text-zinc-400 md:text-base">
@@ -172,7 +172,7 @@ export function Landing() {
         <TickerStrip />
 
         <section className="mx-auto max-w-5xl px-4 py-14" aria-label="Features">
-          <h2 className="text-2xl font-bold tracking-tight text-white md:text-3xl">What the agent does</h2>
+          <h2 className="text-2xl font-display tracking-tight text-white md:text-3xl">What the agent does</h2>
           <p className="mt-1 text-xs text-zinc-500">The terminal agent behind this dashboard — hover a card.</p>
           <div className="mt-5 cursor-pointer">
             <MagicBento glowColor="59, 130, 246" textAutoHide={false} enableTilt={false} />
@@ -180,7 +180,7 @@ export function Landing() {
         </section>
 
         <section className="mx-auto max-w-5xl px-4 py-14" aria-label="Reading perp charts">
-          <h2 className="text-2xl font-bold tracking-tight text-white md:text-3xl">Anatomy of a perp chart</h2>
+          <h2 className="text-2xl font-display tracking-tight text-white md:text-3xl">Anatomy of a perp chart</h2>
           <p className="mt-1 text-xs text-zinc-500">
             Candles, volume and hourly funding — the three things moving every perpetual market.{" "}
             <Link to="/docs" className="font-semibold hover:underline" style={{ color: BLUE_TEXT }}>
@@ -201,7 +201,7 @@ export function Landing() {
         </section>
 
         <section className="mx-auto max-w-5xl px-4 py-14 text-center" aria-label="Get started">
-          <h2 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+          <h2 className="text-2xl font-display tracking-tight text-white md:text-3xl">
             Built for <span style={{ color: BLUE_TEXT }}>aggressive traders</span>
           </h2>
           <p className="mx-auto mt-2 max-w-xl text-xs leading-relaxed text-zinc-400 md:text-sm">
@@ -248,7 +248,7 @@ export function Landing() {
         </section>
 
         <section className="mx-auto max-w-5xl px-4 py-14" aria-label="FAQ">
-          <h2 className="text-2xl font-bold tracking-tight text-white md:text-3xl">FAQ</h2>
+          <h2 className="text-2xl font-display tracking-tight text-white md:text-3xl">FAQ</h2>
           <div className="mt-5 space-y-2">
             {[
               ["Can I place trades from this website?", "No — it is read-only by design. Trading happens in the terminal agent or Telegram, where every live order needs your explicit confirmation."],

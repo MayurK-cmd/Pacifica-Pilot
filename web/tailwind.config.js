@@ -20,6 +20,9 @@ export default {
       fontSize: {
         metric: ["1.375rem", { lineHeight: "1.75rem", fontWeight: "650" }],
       },
+      fontFamily: {
+        display: ['"Caacupe One"', "system-ui", "sans-serif"],
+      },
     },
   },
   plugins: [],
