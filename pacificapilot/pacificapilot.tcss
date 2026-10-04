@@ -2,30 +2,30 @@
 /* Single source of truth for all colors. Never hardcode hex in Python. */
 
 /* ── Core Variables ────────────────────────────────────────────── */
-$background:      #000000;   /* pure pitch black — page bg */
-$surface:         #0a1628;   /* dark navy — panel surfaces */
-$surface-dim:     #050d1a;   /* even darker — sidebar bg */
-$border:          #1e3a5f;   /* dark navy border — inactive */
-$border-active:   #3b82f6;   /* electric blue — active/focused */
+$background:      #0b0b0c;   /* near-black neutral — page bg */
+$surface:         #131314;   /* dark neutral — panel surfaces */
+$surface-dim:     #0e0e10;   /* darker neutral — sidebar bg */
+$border:          #2a2a2e;   /* subtle gray border — inactive */
+$border-active:   #71717a;   /* brighter gray — active/focused */
 
 /* ── Text Colors ───────────────────────────────────────────────── */
-$text:            #ffffff;   /* primary text */
-$text-muted:      #475569;   /* dim secondary text */
-$text-dim:        #1e3a5f;   /* very dim — decorative, inactive labels */
-$text-accent:     #3b82f6;   /* electric blue — accent text, bold */
-$text-accent-dim: #93c5fd;   /* lighter blue — values, numbers */
+$text:            #fafafa;   /* primary text */
+$text-muted:      #a1a1aa;   /* dim secondary text */
+$text-dim:        #3f3f46;   /* very dim — decorative, inactive labels */
+$text-accent:     #fafafa;   /* near-white — accent text, bold */
+$text-accent-dim: #d4d4d8;   /* light gray — values, numbers */
 
 /* ── Semantic Colors ────────────────────────────────────────────── */
 $success:         #22c55e;   /* green — positive PnL, wins, confirmed */
 $error:           #ef4444;   /* red — negative PnL, errors, mainnet */
 $warning:         #f59e0b;   /* amber — dry run off, warnings */
 
-/* ── Special ────────────────────────────────────────────────────── */
-$highlight-bg:    #0f1f3d;   /* dark blue bg — selected rows, active items */
-$cursor:          #3b82f6;   /* input cursor color */
+/* ── Special ─────────────────────────────────────────────────────── */
+$highlight-bg:    #1f1f23;   /* dark neutral bg — selected rows, active items */
+$cursor:          #fafafa;   /* input cursor color */
 
 /* ── Badge Colors (not variables — used directly in class rules below) */
-/* testnet badge:  bg #0f1f3d  fg $text-accent */
+/* testnet badge:  bg #1f1f23  fg $text-accent */
 /* mainnet badge:  bg #3f0f0f  fg $error       */
 /* dryrun-on:      bg #0f2f1a  fg $success      */
 /* dryrun-off:     bg #3f2a0f  fg $warning      */
@@ -98,7 +98,7 @@ Screen {
 }
 
 .badge-testnet {
-    background: #0f1f3d;
+    background: #1f1f23;
     color: $text-accent;
     text-style: bold;
     padding: 0 1;
@@ -322,9 +322,9 @@ Screen {
 
 #input-bar {
     dock: bottom;
-    height: 3;
+    height: 4;
     background: $background;
-    border-top: tall $border-active;
+    border-top: tall $border;
     padding: 0 2;
     layout: vertical;
 }
@@ -359,6 +359,11 @@ Input>.input--cursor {
     color: $background;
 }
 
+#input-model {
+    color: $text-muted;
+    height: 1;
+}
+
 #input-hints {
     color: $text-dim;
     height: 1;
@@ -372,7 +377,9 @@ Input>.input--cursor {
     background: $surface-dim;
     border: tall $border-active;
     padding: 0 1;
-    max-height: 22;
+    max-height: 5;
+    width: auto;
+    max-width: 64;
 }
 
 .autocomplete-item {

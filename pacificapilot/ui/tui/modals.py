@@ -19,7 +19,7 @@ from .state import get_state
 # ── Colours (mirror pacificapilot.tcss variables for Rich markup use) ──
 # These are used ONLY for inline Rich markup in Static widget content.
 # All widget borders/backgrounds are controlled by pacificapilot.tcss classes.
-_TACCENT = "#3b82f6"
+_TACCENT = "#fafafa"
 _TMUTED = "#475569"
 _TERROR = "#ef4444"
 _TSUCCESS = "#22c55e"

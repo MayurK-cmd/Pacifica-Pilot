@@ -27,7 +27,7 @@ def _strip_markdown(text: str) -> str:
     # Italic: *text* or _text_
     text = re.sub(r"(?<!\w)\*(?!\*)(.+?)(?<!\*)\*(?!\w)", r"[italic]\1[/]", text)
     # Inline code: `text`
-    text = re.sub(r"`([^`]+)`", r"[dim #475569]\1[/]", text)
+    text = re.sub(r"`([^`]+)`", r"[dim #a1a1aa]\1[/]", text)
     return text
 
 
@@ -57,24 +57,24 @@ class ChatPanel(RichLog):
         """Agent response — left, with [pilot:] prefix in accent blue."""
         ts = datetime.now().strftime("%H:%M:%S")
         cleaned = _strip_markdown(text)
-        self.write(f"[dim #1e3a5f]{ts}[/]  [bold #3b82f6]pilot:[/] {cleaned}")
+        self.write(f"[dim #3f3f46]{ts}[/]  [bold #fafafa]pilot:[/] {cleaned}")
 
     def add_user_message(self, text: str) -> None:
         """User message — right aligned, dim."""
         ts = datetime.now().strftime("%H:%M:%S")
         cleaned = _strip_markdown(text)
-        self.write(f"[dim #475569]{ts}  you: {cleaned}[/]")
+        self.write(f"[dim #a1a1aa]{ts}  you: {cleaned}[/]")
 
     def add_system_event(self, text: str) -> None:
         """System event — centered, italic, muted."""
         cleaned = _strip_markdown(text)
-        self.write(f"\n[dim #475569 italic]── {cleaned} ──[/]\n")
+        self.write(f"\n[dim #a1a1aa italic]── {cleaned} ──[/]\n")
 
     def add_history_message(self, text: str) -> None:
         """History message — very dim, from previous session."""
         ts = datetime.now().strftime("%H:%M:%S")
         cleaned = _strip_markdown(text)
-        self.write(f"[dim #1e3a5f]{ts}  {cleaned}[/]")
+        self.write(f"[dim #3f3f46]{ts}  {cleaned}[/]")
 
     def add_raw(self, renderable) -> None:
         """Add a Rich renderable (table, panel, etc.)."""

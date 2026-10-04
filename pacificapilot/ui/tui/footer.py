@@ -39,10 +39,10 @@ class PacificaFooter(Static):
 
         # Provider
         p = s.get("provider_name", "") or "n/a"
-        parts.append(f"[dim #475569]{p}[/]")
+        parts.append(f"[dim #a1a1aa]{p}[/]")
 
         # Symbols summary
-        parts.append("[dim #475569]BTC/ETH[/]")
+        parts.append("[dim #a1a1aa]BTC/ETH[/]")
 
         # Dry run
         dry_str = "[#22c55e]dry:ON[/]" if s["dry_run"] else "[#f59e0b]dry:OFF[/]"

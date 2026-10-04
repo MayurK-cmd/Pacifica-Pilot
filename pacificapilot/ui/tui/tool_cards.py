@@ -58,7 +58,7 @@ class ToolCallCard(Widget):
             self.classes = "tool-card"
 
     def _render_collapsed(self) -> str:
-        icon = "[bold #3b82f6]▶[/]"
+        icon = "[bold #fafafa]▶[/]"
         name = f"[bold]{self._tool_name}[/]"
         args_str = ", ".join(f"{k}={v}" for k, v in self._args.items())
         if self._is_running:
@@ -72,13 +72,13 @@ class ToolCallCard(Widget):
         return f"{icon}  {name}({args_str})  {status}"
 
     def _render_expanded(self) -> str:
-        icon = "[bold #3b82f6]▼[/]"
+        icon = "[bold #fafafa]▼[/]"
         name = f"[bold]{self._tool_name}[/]"
         lines = [f"{icon}  {name}"]
         for k, v in self._args.items():
             lines.append(f"  [dim #475569]{k}:[/]  {v}")
         if self._result:
-            lines.append(f"  [dim #1e3a5f]────────────────[/]")
+            lines.append(f"  [dim #3f3f46]────────────────[/]")
             lines.append(f"  [dim #475569]result:[/]  {self._result}")
         if self._error:
             lines.append(f"  [#ef4444]error:[/]  {self._error}")

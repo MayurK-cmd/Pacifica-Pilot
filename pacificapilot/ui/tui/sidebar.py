@@ -23,7 +23,7 @@ SIDEBAR_WIDTH = 30  # characters for dashes padding
 def _dim_line(label: str) -> str:
     """Render a section header line like '─── Positions ───'."""
     dashes = "─" * (SIDEBAR_WIDTH - len(label) - 2)
-    return f"[dim #1e3a5f]─── {label} {dashes}[/]"
+    return f"[dim #3f3f46]─── {label} {dashes}[/]"
 
 
 class Sidebar(Static):
@@ -42,7 +42,7 @@ class Sidebar(Static):
         lines = []
 
         # ── Loop Agent ──
-        lines.append("[bold #1e3a5f]Loop Agent[/]")
+        lines.append("[bold #3f3f46]Loop Agent[/]")
         if s["agent_running"]:
             if s["agent_paused"]:
                 lines.append("[#f59e0b bold]⏸ PAUSED[/]")
@@ -52,14 +52,14 @@ class Sidebar(Static):
             lines.append("[#ef4444 bold]✗ STOPPED[/]")
         if s["next_cycle_seconds"] > 0:
             m, sec = divmod(s["next_cycle_seconds"], 60)
-            lines.append(f"[dim #475569]Next cycle: {m}m {sec}s[/]")
+            lines.append(f"[dim #a1a1aa]Next cycle: {m}m {sec}s[/]")
         lines.append("")
 
         # ── Positions ──
         lines.append(_dim_line("Positions"))
         positions = s["open_positions"]
         if not positions:
-            lines.append("[dim #1e3a5f]—  no position[/]")
+            lines.append("[dim #3f3f46]—  no position[/]")
         else:
             for pos in positions:
                 pnl = pos.unrealized_pnl
@@ -73,16 +73,16 @@ class Sidebar(Static):
 
         # ── Account ──
         lines.append(_dim_line("Account"))
-        lines.append(f"[dim #475569]Equity:   [/][#93c5fd]$ {s['account_equity']:,.2f}[/]")
-        lines.append(f"[dim #475569]Available: [/][#93c5fd]$ {s['account_available']:,.2f}[/]")
-        lines.append(f"[dim #475569]Margin:   [/][#93c5fd]$ {s['account_margin']:,.2f}[/]")
+        lines.append(f"[dim #a1a1aa]Equity:   [/][#d4d4d8]$ {s['account_equity']:,.2f}[/]")
+        lines.append(f"[dim #a1a1aa]Available: [/][#d4d4d8]$ {s['account_available']:,.2f}[/]")
+        lines.append(f"[dim #a1a1aa]Margin:   [/][#d4d4d8]$ {s['account_margin']:,.2f}[/]")
         lines.append("")
 
         # ── Last Decisions ──
         lines.append(_dim_line("Last Decision"))
         decs = s["last_decisions"]
         if not decs:
-            lines.append("[dim #1e3a5f]No decisions yet[/]")
+            lines.append("[dim #3f3f46]No decisions yet[/]")
         else:
             for symbol, dec in decs.items():
                 conf = dec.confidence
@@ -91,9 +91,9 @@ class Sidebar(Static):
                 elif dec.action == "SHORT":
                     action_colored = f"[#ef4444]SHORT[/]"
                 else:
-                    action_colored = f"[dim #475569]HOLD[/]"
+                    action_colored = f"[dim #a1a1aa]HOLD[/]"
                 lines.append(
-                    f"[bold]{symbol}[/] {action_colored}  [dim #475569]{conf:.0%} conf[/]"
+                    f"[bold]{symbol}[/] {action_colored}  [dim #a1a1aa]{conf:.0%} conf[/]"
                 )
         lines.append("")
 
@@ -101,9 +101,9 @@ class Sidebar(Static):
         lines.append(_dim_line("Memory"))
         if s["memory_enabled"]:
             mode = s.get("memory_mode", "")
-            mode_tag = f"[#3b82f6 bold]● {'Local' if mode == 'local' else 'Cloud'}[/]"
+            mode_tag = f"[#fafafa bold]● {'Local' if mode == 'local' else 'Cloud'}[/]"
             lines.append(f"{mode_tag}")
         else:
-            lines.append("[dim #1e3a5f]○ Disabled[/]")
+            lines.append("[dim #3f3f46]○ Disabled[/]")
 
         self.update("\n".join(lines))

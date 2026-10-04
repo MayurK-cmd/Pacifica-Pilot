@@ -1,9 +1,10 @@
 """
 Input bar — fixed bottom input using textual-autocomplete.
 
-Two rows:
-  Row 1: [#3b82f6 bold]> [/]   [Input widget]
-  Row 2: [dim #1e3a5f][/] commands  [↑↓] history  ...
+Three rows:
+  Row 1: [prompt]>  [Input widget]
+  Row 2: provider · model status line
+  Row 3: [/] commands  [↑↓] history  ...
 
 Slash-command autocomplete via textual-autocomplete.
 All colors via Rich markup — no hex in Python.
@@ -12,38 +13,47 @@ All colors via Rich markup — no hex in Python.
 from __future__ import annotations
 
 from textual.app import ComposeResult
+from textual.content import Content
 from textual.geometry import Offset, Region, Spacing
 from textual.widgets import Input, Static
 from textual.widget import Widget
 from textual.containers import Horizontal
 from textual_autocomplete import AutoComplete, DropdownItem, TargetState
 
-# Slash command definitions for autocomplete
-# main = plain command text (what gets inserted into input on select)
-# prefix = description (shown as secondary text in dropdown)
-# Color is applied via TCSS autocomplete-* classes, NOT Rich markup in strings.
-SLASH_COMMANDS = [
-    DropdownItem("/config",      prefix="View or edit trading parameters"),
-    DropdownItem("/apikey",      prefix="Manage AI provider and Pacifica keys"),
-    DropdownItem("/mode",        prefix="Switch between testnet and mainnet"),
-    DropdownItem("/status",      prefix="Show agent status and recent decisions"),
-    DropdownItem("/positions",   prefix="List open positions with live PnL"),
-    DropdownItem("/account",     prefix="Fetch account stats from Pacifica"),
-    DropdownItem("/history",     prefix="Show recent trade history"),
-    DropdownItem("/performance", prefix="Performance metrics (Sharpe, win rate, drawdown)"),
-    DropdownItem("/analytics",   prefix="Monthly returns and per-symbol breakdown"),
-    DropdownItem("/backtest",    prefix="Run backtest on historical data"),
-    DropdownItem("/portfolio",   prefix="Portfolio risk metrics and correlation"),
-    DropdownItem("/start",       prefix="Boot the autonomous Loop Agent"),
-    DropdownItem("/stop",        prefix="Stop the autonomous Loop Agent"),
-    DropdownItem("/pause",       prefix="Soft-pause the Loop Agent"),
-    DropdownItem("/resume",      prefix="Resume the Loop Agent"),
-    DropdownItem("/loop",        prefix="Alias for /resume and /pause: /loop on | off"),
-    DropdownItem("/remote",      prefix="Enable or disable Telegram remote mode"),
-    DropdownItem("/clear",       prefix="Clear the chat panel"),
-    DropdownItem("/help",        prefix="Show all available commands"),
-    DropdownItem("/exit",        prefix="Quit PacificaPilot"),
+# Slash command definitions: (command, one-liner).
+# Rows render as "command  description" — command first, like opencode.
+COMMANDS: list[tuple[str, str]] = [
+    ("/config",      "View or edit settings"),
+    ("/apikey",      "Manage API keys"),
+    ("/mode",        "Switch testnet / mainnet"),
+    ("/status",      "Agent status + decisions"),
+    ("/positions",   "Open positions + live PnL"),
+    ("/account",     "Account balances"),
+    ("/history",     "Recent trades"),
+    ("/performance", "Win rate, Sharpe, drawdown"),
+    ("/analytics",   "Monthly + per-symbol stats"),
+    ("/backtest",    "Backtest a strategy"),
+    ("/portfolio",   "Portfolio risk metrics"),
+    ("/start",       "Start the Loop Agent"),
+    ("/stop",        "Stop the Loop Agent"),
+    ("/pause",       "Pause the loop"),
+    ("/resume",      "Resume the loop"),
+    ("/loop",        "Loop on / off"),
+    ("/remote",      "Telegram remote mode"),
+    ("/clear",       "Clear chat"),
+    ("/help",        "All commands"),
+    ("/exit",        "Quit"),
 ]
+
+
+def _menu_item(cmd: str, desc: str) -> DropdownItem:
+    """One dropdown row: bold command, dim one-liner after it."""
+    return DropdownItem(
+        Content.from_markup(f"[bold #fafafa]{cmd}[/]  [dim #a1a1aa]{desc}[/]")
+    )
+
+
+SLASH_COMMANDS = [_menu_item(cmd, desc) for cmd, desc in COMMANDS]
 
 
 class SlashCommandAutoComplete(AutoComplete):
@@ -64,10 +74,10 @@ class SlashCommandAutoComplete(AutoComplete):
         if option_count == 0:
             return False
         if option_count == 1:
-            only = self.option_list.get_option_at_index(0).prompt
-            text = only.plain if hasattr(only, "plain") else only
-            # Fully typed command (e.g. "/help") — nothing left to pick.
-            if text == search_string:
+            # Fully typed command (e.g. "/help ") — nothing left to pick.
+            # (Row text includes the description, so compare the command alone.)
+            typed = search_string.strip()
+            if any(cmd == typed for cmd, _ in COMMANDS):
                 return False
         return True
 
@@ -88,11 +98,13 @@ class SlashCommandAutoComplete(AutoComplete):
         self.absolute_offset = Offset(x, y)
 
     def apply_completion(self, value: str, state: TargetState) -> None:
-        """Insert the command plus a trailing space, then hide the menu."""
+        """Insert the command (first token — rows carry descriptions too),
+        plus a trailing space, then hide the menu."""
+        command = value.split()[0] if value.split() else value
         target = self.target
         with self.prevent(Input.Changed):
             target.value = ""
-            target.insert_text_at_cursor(value + " ")
+            target.insert_text_at_cursor(command + " ")
         new_state = self._get_target_state()
         self._rebuild_options(new_state, self.get_search_string(new_state))
         self.post_completion()
@@ -109,7 +121,7 @@ class InputBar(Widget):
 
     def compose(self) -> ComposeResult:
         with Horizontal(id="input-row"):
-            yield Static("[bold #3b82f6]>[/] ", id="input-prompt")
+            yield Static("[bold #fafafa]>[/] ", id="input-prompt")
             input_widget = Input(placeholder="Message or /command...", id="input-field")
             yield SlashCommandAutoComplete(
                 input_widget,
@@ -118,10 +130,30 @@ class InputBar(Widget):
                 id="autocomplete",
             )
             yield input_widget
+        yield Static("", id="input-model")
         yield Static(
-            "[dim #1e3a5f][/] commands  [↑↓] history  [Esc] cancel  [Ctrl+P] palette  [Ctrl+M] model[/]",
+            "[dim #3f3f46][/] commands  [↑↓] history  [Esc] cancel  [Ctrl+P] palette  [Ctrl+M] model[/]",
             id="input-hints",
         )
+        self.call_later(self.refresh_model_line)
+
+    def refresh_model_line(self) -> None:
+        """Show `provider · model` under the input, like opencode's model row."""
+        try:
+            from ...storage.config import load_config
+
+            cfg = load_config()
+            provider = (cfg.get("chat_agent_provider") or "").strip()
+            model = (cfg.get("chat_agent_model") or "").strip()
+            if provider and model:
+                text = f"[dim #a1a1aa]{provider} · {model}[/]"
+            elif provider:
+                text = f"[dim #a1a1aa]{provider} · model not set[/]"
+            else:
+                text = "[dim #a1a1aa]no provider configured — /apikey to add one[/]"
+            self.query_one("#input-model", Static).update(text)
+        except Exception:
+            pass
 
     _input: Input
 

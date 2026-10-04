@@ -35,7 +35,17 @@ class PacificaHeader(Widget):
 
     def on_mount(self) -> None:
         self.set_interval(30, self._refresh)
+        self.set_interval(1, self._refresh_clock)
         self._refresh()
+        self._refresh_clock()
+
+    def _refresh_clock(self) -> None:
+        """Tick the top-right clock every second."""
+        try:
+            now = datetime.now().strftime("%H:%M:%S")
+            self.query_one("#header-right", Static).update(f"[dim #a1a1aa]{now}[/]")
+        except Exception:
+            pass
 
     def _refresh(self) -> None:
         """Refresh all header content from PilotState."""
@@ -43,7 +53,7 @@ class PacificaHeader(Widget):
 
         # ── Left: title + version ──
         self.query_one("#header-left", Static).update(
-            "[bold #3b82f6]PacificaPilot[/] [dim #475569]v0.1.0[/]"
+            "[bold #fafafa]PacificaPilot[/] [dim #a1a1aa]v0.1.0[/]"
         )
 
         # ── Center: badges ──
@@ -52,19 +62,19 @@ class PacificaHeader(Widget):
         provider = s.get("provider_name", "n/a")
         badges = []
         if mode == "testnet":
-            badges.append("[#3b82f6 bold on #0f1f3d] TESTNET [/]")
+            badges.append("[#fafafa bold on #26262b] TESTNET [/]")
         else:
             badges.append("[#ef4444 bold on #3f0f0f] MAINNET [/]")
         if dry_run:
             badges.append("[#22c55e on #0f2f1a] DRY:ON [/]")
         else:
             badges.append("[#f59e0b bold on #3f2a0f] DRY:OFF [/]")
-        badges.append(f"[dim #475569]{provider}[/]")
+        badges.append(f"[dim #a1a1aa]{provider}[/]")
         self.query_one("#header-center", Static).update("  ".join(badges))
 
         # ── Right: time ──
         now = datetime.now().strftime("%H:%M:%S")
-        self.query_one("#header-right", Static).update(f"[dim #475569]{now}[/]")
+        self.query_one("#header-right", Static).update(f"[dim #a1a1aa]{now}[/]")
 
         # ── Price line ──
         btc = s.get("btc_price", 0)
@@ -75,11 +85,11 @@ class PacificaHeader(Widget):
         if btc > 0:
             arrow = "▲" if btc_ch >= 0 else "▼"
             color = "#22c55e" if btc_ch >= 0 else "#ef4444"
-            parts.append(f"[dim #475569]BTC[/] [#93c5fd]$ {btc:,.0f}[/] [{color}]{arrow}[/]")
+            parts.append(f"[dim #a1a1aa]BTC[/] [#d4d4d8]$ {btc:,.0f}[/] [{color}]{arrow}[/]")
         if eth > 0:
             arrow = "▲" if eth_ch >= 0 else "▼"
             color = "#22c55e" if eth_ch >= 0 else "#ef4444"
-            parts.append(f"[dim #475569]ETH[/] [#93c5fd]$ {eth:,.0f}[/] [{color}]{arrow}[/]")
+            parts.append(f"[dim #a1a1aa]ETH[/] [#d4d4d8]$ {eth:,.0f}[/] [{color}]{arrow}[/]")
         self.query_one("#header-prices", Static).update(
-            "  ".join(parts) if parts else "[dim #1e3a5f]no price data[/]"
+            "  ".join(parts) if parts else "[dim #3f3f46]no price data[/]"
         )

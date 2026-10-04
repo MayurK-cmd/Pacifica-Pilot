@@ -123,6 +123,22 @@ class PacificaPilotApp(App):
 
         chat = self.query_one(ChatPanel)
 
+        # Startup banner (termcn BigText-style, rendered natively in Textual)
+        try:
+            from rich.text import Text as _RichText
+
+            from .banner import banner_lines
+
+            chat.add_raw(
+                _RichText(
+                    "\n".join(banner_lines("PACIFICA PILOT")),
+                    style="bold #fafafa",
+                    justify="center",
+                )
+            )
+        except Exception:
+            pass
+
         # Load session history asynchronously
         self.call_later(self._load_session_history)
 
@@ -295,6 +311,14 @@ class PacificaPilotApp(App):
         else:
             self._handle_chat(text)
 
+        # Model line may be stale after /apikey or /config — refresh cheaply.
+        try:
+            from .input_bar import InputBar
+
+            self.query_one(InputBar).refresh_model_line()
+        except Exception:
+            pass
+
     def _handle_command(self, text: str) -> None:
         parts = text.split()
         cmd = parts[0].lower()
@@ -422,13 +446,9 @@ class PacificaPilotApp(App):
 
     def _show_help(self) -> None:
         chat = self.query_one(ChatPanel)
-        from .input_bar import SLASH_COMMANDS
+        from .input_bar import COMMANDS
         lines = ["[bold]Available commands:[/]\n"]
-        for item in SLASH_COMMANDS:
-            # main and prefix are textual.content.Content objects
-            cmd = item.main.plain if hasattr(item.main, "plain") else str(item.main)
-            raw = item.prefix if hasattr(item, "prefix") and item.prefix else ""
-            desc = raw.plain if hasattr(raw, "plain") else str(raw)
+        for cmd, desc in COMMANDS:
             lines.append(f"  [bold]{cmd:15}[/] [dim]{desc}[/]")
         lines.append("")
         lines.append("[dim]Also type anything in natural language to chat with the AI agent.[/]")
@@ -574,7 +594,7 @@ class PacificaPilotApp(App):
         console = Console()
         cmd_performance_impl(
             console, args, get_recent_trades,
-            "#3b82f6", "#ffffff", "#22c55e", "#ef4444", "#1e3a5f", "#475569",
+            "#fafafa", "#ffffff", "#22c55e", "#ef4444", "#3f3f46", "#a1a1aa",
         )
 
     def _cmd_analytics(self, args: list) -> None:
@@ -587,7 +607,7 @@ class PacificaPilotApp(App):
         console = Console()
         cmd_analytics_impl(
             console, args, get_recent_trades,
-            "#3b82f6", "#ffffff", "#22c55e", "#ef4444", "#1e3a5f", "#475569",
+            "#fafafa", "#ffffff", "#22c55e", "#ef4444", "#3f3f46", "#a1a1aa",
         )
 
     def _cmd_backtest(self, args: list) -> None:
@@ -598,15 +618,15 @@ class PacificaPilotApp(App):
         console = Console()
         cmd_portfolio_impl(
             console, get_all_positions, load_config,
-            "#3b82f6", "#ffffff", "#22c55e", "#ef4444", "#1e3a5f", "#475569",
+            "#fafafa", "#ffffff", "#22c55e", "#ef4444", "#3f3f46", "#a1a1aa",
         )
 
     def _cmd_account(self, args: list) -> None:
         from rich.console import Console
         console = Console()
         cmd_account_impl(
-            console, args, "#3b82f6", "#475569",
-            "#22c55e", "#ef4444", "#ffffff", "#1e3a5f",
+            console, args, "#fafafa", "#a1a1aa",
+            "#22c55e", "#ef4444", "#ffffff", "#3f3f46",
         )
 
     def _cmd_start(self) -> None:
@@ -685,6 +705,12 @@ class PacificaPilotApp(App):
                 self._chat_agent.config = load_config()
             self._sync_config_to_state()
             self.query_one(ChatPanel).add_system_event(f"Switched provider to {result}")
+            try:
+                from .input_bar import InputBar
+
+                self.query_one(InputBar).refresh_model_line()
+            except Exception:
+                pass
 
     def action_open_settings(self) -> None:
         """Ctrl+S — settings modal."""
