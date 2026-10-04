@@ -372,6 +372,7 @@ Input>.input--cursor {
     background: $surface-dim;
     border: tall $border-active;
     padding: 0 1;
+    max-height: 22;
 }
 
 .autocomplete-item {

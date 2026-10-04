@@ -94,6 +94,60 @@ def _time_range_cutoff_ms(time_range: str) -> Optional[int]:
     return int(time.time() * 1000) - days * 86_400_000
 
 
+def get_closed_positions(
+    wallet_address: str,
+    limit: int = 100,
+    symbol: Optional[str] = None,
+) -> Optional[List[dict]]:
+    """
+    Reconstruct closed round-trips from trade events.
+
+    Pairs open_long/open_short events with later close_long/close_short
+    events per symbol (FIFO). There is no dedicated closed-positions
+    endpoint, so this is derived from GET /api/v1/trades/history.
+
+    Returns list of:
+        {symbol, side LONG|SHORT, entry_price, exit_price, size,
+         realized_pnl (sum of close-event pnls), opened_at, closed_at}
+    """
+    events = get_trade_history(wallet_address, limit=max(limit * 3, 100), symbol=symbol)
+    if not events:
+        return []
+
+    pending: dict = {}  # symbol -> list of open legs
+    closed = []
+    for ev in sorted(events, key=lambda e: e.get("created_at", 0)):
+        side = str(ev.get("side", ""))
+        sym = str(ev.get("symbol", "")).upper()
+        try:
+            amount = abs(float(ev.get("amount", 0) or 0))
+            price = float(ev.get("entry_price", ev.get("price", 0)) or 0)
+            pnl = float(ev.get("pnl", 0) or 0)
+        except (TypeError, ValueError):
+            continue
+        if side in ("open_long", "open_short"):
+            pending.setdefault(sym, []).append({
+                "side": side, "entry_price": price, "amount": amount,
+                "created_at": ev.get("created_at"),
+            })
+        elif side in ("close_long", "close_short") and pending.get(sym):
+            leg = pending[sym].pop(0)
+            direction = "LONG" if leg["side"] == "open_long" else "SHORT"
+            closed.append({
+                "symbol": sym,
+                "side": direction,
+                "entry_price": leg["entry_price"],
+                "exit_price": price,
+                "size": leg["amount"],
+                "realized_pnl": pnl,
+                "opened_at": leg["created_at"],
+                "closed_at": ev.get("created_at"),
+            })
+
+    closed.sort(key=lambda c: c["closed_at"] or 0, reverse=True)
+    return closed[:limit]
+
+
 def get_account_equity_history(
     wallet_address: str,
     time_range: str = "7d"
@@ -256,6 +310,33 @@ def get_account_balance_history(
         if cutoff:
             records = [r for r in records if (r.get("created_at") or 0) >= cutoff]
         return {"data": records}
+    except Exception:
+        return None
+
+
+def get_trading_fees(wallet_address: str) -> Optional[dict]:
+    """
+    Fetch the account's actual maker/taker fee rates.
+
+    Reads maker_fee, taker_fee, fee_level from GET /api/v1/account
+    (tiers update daily from 14-day volume). Use for cost-aware sizing
+    instead of assuming zero fees.
+
+    Returns {"maker_fee": float, "taker_fee": float, "fee_level": int} or None.
+    """
+    try:
+        r = _session.get(
+            f"{get_base_url()}/account",
+            params={"account": wallet_address},
+            timeout=10,
+        )
+        r.raise_for_status()
+        data = r.json().get("data", {})
+        return {
+            "maker_fee": float(data.get("maker_fee", 0) or 0),
+            "taker_fee": float(data.get("taker_fee", 0) or 0),
+            "fee_level": int(data.get("fee_level", 0) or 0),
+        }
     except Exception:
         return None
 

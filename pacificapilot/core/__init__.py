@@ -15,16 +15,27 @@ from .trading import (
     place_limit_order,
     close_position,
     get_open_positions,
+    get_open_orders,
     get_account_info,
     get_order_fill,
+    set_position_tpsl,
+    create_stop_order,
+    cancel_order,
+    cancel_all_orders,
+    cancel_stop_order,
+    edit_order,
+    update_leverage,
+    update_margin_mode,
     should_exit_position,
     compute_pnl,
 )
 from .market_data import (
     get_market_snapshot,
     fetch_pacifica_price,
+    fetch_pacifica_klines,
     fetch_binance_fallback,
 )
+from .wsfeed import PacificaFeed, get_shared_feed, live_price
 from .risk import (
     check_position_limit,
     calculate_position_size,
@@ -59,6 +70,8 @@ from .portfolio import (
 )
 from .pacifica_api import (
     get_trade_history,
+    get_closed_positions,
+    get_trading_fees,
     get_account_equity_history,
     get_funding_history,
     get_account_balance_history,
@@ -76,14 +89,28 @@ __all__ = [
     "place_limit_order",
     "close_position",
     "get_open_positions",
+    "get_open_orders",
     "get_account_info",
     "get_order_fill",
+    "set_position_tpsl",
+    "create_stop_order",
+    "cancel_order",
+    "cancel_all_orders",
+    "cancel_stop_order",
+    "edit_order",
+    "update_leverage",
+    "update_margin_mode",
     "should_exit_position",
     "compute_pnl",
     # Market data
     "get_market_snapshot",
     "fetch_pacifica_price",
+    "fetch_pacifica_klines",
     "fetch_binance_fallback",
+    # WebSocket live feed
+    "PacificaFeed",
+    "get_shared_feed",
+    "live_price",
     # Risk management
     "check_position_limit",
     "calculate_position_size",
@@ -113,6 +140,8 @@ __all__ = [
     "get_portfolio_risk_metrics",
     # Pacifica API
     "get_trade_history",
+    "get_closed_positions",
+    "get_trading_fees",
     "get_account_equity_history",
     "get_funding_history",
     "get_account_balance_history",

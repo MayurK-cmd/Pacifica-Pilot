@@ -35,6 +35,8 @@ DEFAULT_CONFIG = {
     "mode": "testnet",
     "dry_run": True,
     "use_binance_fallback": True,
+    "use_native_tpsl": False,
+    "use_ws_feed": False,
     "remote_mode_enabled": False,
     "telegram_chat_ids": [],
     "loop_agent_provider": "openrouter",

@@ -775,22 +775,33 @@ Recent decisions:
             if not self.secrets.get("TELEGRAM_BOT_TOKEN"):
                 return "⚠️  No Telegram bot token configured. Use /apikey telegram <token>"
 
-            # Generate pairing code
+            # Generate pairing code (single-use, expires after 10 minutes)
+            import time
+
             from ..telegram import generate_pairing_code
             code = generate_pairing_code()
 
-            update_config({"remote_mode_enabled": True})
+            update_config({
+                "remote_mode_enabled": True,
+                "telegram_pairing_code": code,
+                "telegram_pairing_issued_at": int(time.time()),
+            })
 
             return (
                 f"✓ Remote mode enabled\n\n"
-                f"Pairing code: {code}\n\n"
+                f"Pairing code: {code}\n"
+                f"(single-use, expires in 10 minutes)\n\n"
                 f"To pair your Telegram:\n"
                 f"1. Message your bot on Telegram\n"
                 f"2. Send: /pair {code}\n\n"
-                f"The bot will start when you run 'pacifica start'"
+                f"Keep this app running — the Telegram bot works while it does"
             )
         elif action == "disable":
-            update_config({"remote_mode_enabled": False})
+            update_config({
+                "remote_mode_enabled": False,
+                "telegram_pairing_code": None,
+                "telegram_pairing_issued_at": 0,
+            })
             return "✓ Remote mode disabled"
         else:
             return "Usage: /remote enable or /remote disable"

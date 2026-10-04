@@ -952,10 +952,19 @@ class PacificaREPL:
         self.console.print(f"\n[green]✓ Loop Agent resumed[/green]\n")
 
     def cmd_remote(self, args: list):
-        """Manage Telegram remote access."""
-        self.console.print(f"\n[yellow]Telegram remote access configuration[/yellow]")
-        self.console.print(f"[dim]This feature requires the Telegram bot to be configured and running[/dim]")
-        self.console.print(f"[dim]Add your [bold]TELEGRAM_BOT_TOKEN[/bold] with [bold]/apikey telegram <token>[/bold][/dim]\n")
+        """Manage Telegram remote access (delegates to ChatAgent)."""
+        from ..agents.chat import ChatAgent
+
+        if not hasattr(self, 'chat_agent'):
+            self.chat_agent = ChatAgent()
+
+        # Reuse the real enable/disable + pairing-code flow
+        text = "/remote" + (" " + " ".join(args) if args else "")
+        try:
+            response = self.chat_agent.handle_message(text)
+        except Exception as e:
+            response = f"Error: {e}"
+        self.console.print(f"\n{response}\n")
 
     def handle_chat(self, message: str):
         """Handle a chat message to the agent."""

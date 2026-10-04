@@ -671,6 +671,385 @@ def get_order_fill(
     return empty
 
 
+def _signed_post(endpoint: str, op_type: str, operation_data: dict, keypair: Keypair, timeout: int = 15):
+    """
+    Send a signed Pacifica write request.
+
+    Builds the signature header, signs {header + data}, and POSTs the flat
+    envelope (auth fields + operation fields, NOT wrapped in "data").
+
+    Returns:
+        (ok: bool, payload: dict) — payload is the decoded JSON on success,
+        {"error": str} on failure.
+    """
+    timestamp = int(time.time() * 1000)
+    signature_header = {
+        "timestamp": timestamp,
+        "expiry_window": 30000,
+        "type": op_type,
+    }
+    message_to_sign = _build_order_message({**signature_header, "data": operation_data})
+    signature = _sign_message(message_to_sign, keypair)
+
+    final_request = {
+        "account": str(keypair.pubkey()),
+        "signature": signature,
+        "timestamp": timestamp,
+        "expiry_window": 30000,
+        **operation_data,
+    }
+
+    try:
+        r = requests.post(
+            f"{get_base_url()}/{endpoint}",
+            json=final_request,
+            headers={**_session.headers, "Content-Type": "application/json"},
+            timeout=timeout,
+        )
+        r.raise_for_status()
+        try:
+            return True, r.json()
+        except Exception:
+            return True, {}
+    except requests.exceptions.HTTPError as e:
+        try:
+            detail = f"{e.response.status_code} - {e.response.json()}"
+        except Exception:
+            detail = f"{e.response.status_code} - {e.response.text if e.response else e}"
+        return False, {"error": detail}
+    except Exception as e:
+        return False, {"error": str(e)}
+
+
+def _tpsl_leg(stop_price: float, limit_price: Optional[float] = None,
+               trigger_price_type: str = "mark_price") -> dict:
+    """Build a take_profit / stop_loss leg object per API spec."""
+    leg = {"stop_price": str(stop_price)}
+    if limit_price is not None:
+        leg["limit_price"] = str(limit_price)
+    if trigger_price_type != "mark_price":
+        leg["trigger_price_type"] = trigger_price_type
+    return leg
+
+
+def set_position_tpsl(
+    symbol: str,
+    side: str,
+    keypair: Keypair,
+    take_profit_price: Optional[float] = None,
+    stop_loss_price: Optional[float] = None,
+    take_profit_limit: Optional[float] = None,
+    stop_loss_limit: Optional[float] = None,
+    dry_run: bool = True,
+) -> dict:
+    """
+    Attach native exchange-side take-profit / stop-loss to an open position.
+
+    Uses POST /api/v1/positions/tpsl (signing op "set_position_tpsl").
+    Unlike the loop's local SL/TP checks, these survive process restarts.
+
+    Args:
+        symbol: Market symbol
+        side: Position side ("bid" long or "ask" short)
+        keypair: User's Solana keypair
+        take_profit_price: TP trigger price (None to skip)
+        stop_loss_price: SL trigger price (None to skip)
+        take_profit_limit / stop_loss_limit: Optional limit prices
+        dry_run: If True, validate and report without sending
+
+    Returns:
+        {"success": bool, "message": str, "dry_run": bool}
+    """
+    operation_data = {"symbol": symbol, "side": side}
+    if take_profit_price is not None:
+        operation_data["take_profit"] = _tpsl_leg(take_profit_price, take_profit_limit)
+    if stop_loss_price is not None:
+        operation_data["stop_loss"] = _tpsl_leg(stop_loss_price, stop_loss_limit)
+
+    if "take_profit" not in operation_data and "stop_loss" not in operation_data:
+        return {"success": False, "message": "Provide take_profit_price and/or stop_loss_price", "dry_run": dry_run}
+
+    if dry_run:
+        legs = [k for k in ("take_profit", "stop_loss") if k in operation_data]
+        return {"success": True, "message": f"[DRY RUN] Would set {', '.join(legs)} on {symbol}", "dry_run": True}
+
+    ok, result = _signed_post("positions/tpsl", "set_position_tpsl", operation_data, keypair)
+    if ok:
+        return {"success": True, "message": f"TP/SL set on {symbol}", "dry_run": False}
+    return {"success": False, "message": f"TPSL failed: {result.get('error')}", "dry_run": False}
+
+
+def create_stop_order(
+    symbol: str,
+    side: str,
+    keypair: Keypair,
+    stop_price: float,
+    limit_price: Optional[float] = None,
+    amount: Optional[float] = None,
+    reduce_only: bool = True,
+    trigger_price_type: str = "mark_price",
+    dry_run: bool = True,
+) -> dict:
+    """
+    Place a standalone stop order (stop-market if no limit_price, else stop-limit).
+
+    Uses POST /api/v1/orders/stop/create (signing op "create_stop_order").
+
+    Returns:
+        {"success": bool, "order_id": str | None, "message": str, "dry_run": bool}
+    """
+    if stop_price <= 0:
+        return {"success": False, "order_id": None, "message": "Invalid stop price", "dry_run": dry_run}
+
+    stop_order = {"stop_price": str(stop_price)}
+    if limit_price is not None:
+        stop_order["limit_price"] = str(limit_price)
+    if trigger_price_type != "mark_price":
+        stop_order["trigger_price_type"] = trigger_price_type
+    if amount is not None:
+        stop_order["amount"] = str(amount)
+
+    operation_data = {
+        "symbol": symbol,
+        "side": side,
+        "reduce_only": reduce_only,
+        "stop_order": stop_order,
+        "client_order_id": str(uuid.uuid4()),
+    }
+
+    if dry_run:
+        kind = "STOP-LIMIT" if limit_price else "STOP-MARKET"
+        return {
+            "success": True,
+            "order_id": f"dry-stop-{uuid.uuid4().hex[:8]}",
+            "message": f"[DRY RUN] Would place {kind} {side.upper()} {symbol} @ trigger ${stop_price:,.2f}",
+            "dry_run": True,
+        }
+
+    ok, result = _signed_post("orders/stop/create", "create_stop_order", operation_data, keypair)
+    if ok:
+        return {
+            "success": True,
+            "order_id": str(result.get("order_id", operation_data["client_order_id"])),
+            "message": f"Stop order placed on {symbol} @ trigger ${stop_price:,.2f}",
+            "dry_run": False,
+        }
+    return {"success": False, "order_id": None, "message": f"Stop order failed: {result.get('error')}", "dry_run": False}
+
+
+def cancel_order(
+    symbol: str,
+    keypair: Keypair,
+    order_id=None,
+    client_order_id: Optional[str] = None,
+    dry_run: bool = True,
+) -> dict:
+    """
+    Cancel a single resting order by exchange order_id XOR client_order_id.
+
+    Uses POST /api/v1/orders/cancel (signing op "cancel_order").
+    """
+    if (order_id is None) == (client_order_id is None):
+        return {"success": False, "message": "Provide exactly one of order_id or client_order_id", "dry_run": dry_run}
+
+    operation_data = {"symbol": symbol}
+    if order_id is not None:
+        try:
+            operation_data["order_id"] = int(order_id)
+        except (TypeError, ValueError):
+            return {"success": False, "message": f"Invalid order_id {order_id!r}", "dry_run": dry_run}
+    else:
+        operation_data["client_order_id"] = client_order_id
+
+    if dry_run:
+        return {"success": True, "message": f"[DRY RUN] Would cancel order on {symbol}", "dry_run": True}
+
+    ok, result = _signed_post("orders/cancel", "cancel_order", operation_data, keypair)
+    if ok:
+        return {"success": True, "message": f"Order cancelled on {symbol}", "dry_run": False}
+    return {"success": False, "message": f"Cancel failed: {result.get('error')}", "dry_run": False}
+
+
+def cancel_all_orders(
+    keypair: Keypair,
+    symbol: Optional[str] = None,
+    exclude_reduce_only: bool = False,
+    dry_run: bool = True,
+) -> dict:
+    """
+    Cancel resting orders — all symbols, or one symbol when given.
+
+    Uses POST /api/v1/orders/cancel_all (signing op "cancel_all_orders").
+    Returns the exchange-reported cancelled_count.
+    """
+    operation_data: dict = {"all_symbols": symbol is None, "exclude_reduce_only": exclude_reduce_only}
+    if symbol is not None:
+        operation_data["symbol"] = symbol
+
+    if dry_run:
+        scope = "all symbols" if symbol is None else symbol
+        return {"success": True, "cancelled_count": 0, "message": f"[DRY RUN] Would cancel orders for {scope}", "dry_run": True}
+
+    ok, result = _signed_post("orders/cancel_all", "cancel_all_orders", operation_data, keypair)
+    if ok:
+        count = result.get("cancelled_count", result.get("data", {}).get("cancelled_count", 0)) if isinstance(result, dict) else 0
+        return {"success": True, "cancelled_count": count, "message": f"Cancelled {count} order(s)", "dry_run": False}
+    return {"success": False, "cancelled_count": 0, "message": f"Cancel-all failed: {result.get('error')}", "dry_run": False}
+
+
+def cancel_stop_order(
+    symbol: str,
+    keypair: Keypair,
+    order_id=None,
+    client_order_id: Optional[str] = None,
+    dry_run: bool = True,
+) -> dict:
+    """
+    Cancel a single stop order by exchange order_id XOR client_order_id.
+
+    Uses POST /api/v1/orders/stop/cancel (signing op "cancel_stop_order").
+    """
+    if (order_id is None) == (client_order_id is None):
+        return {"success": False, "message": "Provide exactly one of order_id or client_order_id", "dry_run": dry_run}
+
+    operation_data = {"symbol": symbol}
+    if order_id is not None:
+        try:
+            operation_data["order_id"] = int(order_id)
+        except (TypeError, ValueError):
+            return {"success": False, "message": f"Invalid order_id {order_id!r}", "dry_run": dry_run}
+    else:
+        operation_data["client_order_id"] = client_order_id
+
+    if dry_run:
+        return {"success": True, "message": f"[DRY RUN] Would cancel stop order on {symbol}", "dry_run": True}
+
+    ok, result = _signed_post("orders/stop/cancel", "cancel_stop_order", operation_data, keypair)
+    if ok:
+        return {"success": True, "message": f"Stop order cancelled on {symbol}", "dry_run": False}
+    return {"success": False, "message": f"Stop-cancel failed: {result.get('error')}", "dry_run": False}
+
+
+def edit_order(
+    symbol: str,
+    keypair: Keypair,
+    price: float,
+    amount: float,
+    order_id=None,
+    client_order_id: Optional[str] = None,
+    dry_run: bool = True,
+) -> dict:
+    """
+    Edit a resting limit order's price and/or size.
+
+    Uses POST /api/v1/orders/edit (signing op "edit_order"). Per docs the edit
+    cancels the original and creates a replacement (new order_id, TIF = ALO).
+
+    Returns:
+        {"success": bool, "order_id": str | None (new id), "message": str, "dry_run": bool}
+    """
+    if (order_id is None) == (client_order_id is None):
+        return {"success": False, "order_id": None, "message": "Provide exactly one of order_id or client_order_id", "dry_run": dry_run}
+    if price <= 0 or amount <= 0:
+        return {"success": False, "order_id": None, "message": "Price and amount must be positive", "dry_run": dry_run}
+
+    operation_data = {"symbol": symbol, "price": str(price), "amount": str(amount)}
+    if order_id is not None:
+        try:
+            operation_data["order_id"] = int(order_id)
+        except (TypeError, ValueError):
+            return {"success": False, "order_id": None, "message": f"Invalid order_id {order_id!r}", "dry_run": dry_run}
+    else:
+        operation_data["client_order_id"] = client_order_id
+
+    if dry_run:
+        return {"success": True, "order_id": None, "message": f"[DRY RUN] Would edit order on {symbol} to ${price:,.2f} x {amount}", "dry_run": True}
+
+    ok, result = _signed_post("orders/edit", "edit_order", operation_data, keypair)
+    if ok:
+        return {
+            "success": True,
+            "order_id": str(result.get("order_id", "")) or None,
+            "message": f"Order edited on {symbol} (replacement id {result.get('order_id')})",
+            "dry_run": False,
+        }
+    return {"success": False, "order_id": None, "message": f"Edit failed: {result.get('error')}", "dry_run": False}
+
+
+def update_leverage(symbol: str, leverage: int, keypair: Keypair, dry_run: bool = True) -> dict:
+    """
+    Set per-symbol leverage.
+
+    Uses POST /api/v1/account/leverage (signing op "update_leverage").
+    Leverage is validated against the market's max_leverage from GET /info.
+    """
+    try:
+        leverage = int(leverage)
+    except (TypeError, ValueError):
+        return {"success": False, "leverage": None, "message": f"Invalid leverage {leverage!r}", "dry_run": dry_run}
+    if leverage <= 0:
+        return {"success": False, "leverage": None, "message": "Leverage must be positive", "dry_run": dry_run}
+
+    market_info = _get_market_info(symbol) or {}
+    max_lev = market_info.get("max_leverage")
+    if max_lev and leverage > int(max_lev):
+        return {
+            "success": False,
+            "leverage": None,
+            "message": f"Leverage {leverage}x exceeds max {max_lev}x for {symbol}",
+            "dry_run": dry_run,
+        }
+
+    if dry_run:
+        return {"success": True, "leverage": leverage, "message": f"[DRY RUN] Would set leverage {leverage}x on {symbol}", "dry_run": True}
+
+    ok, result = _signed_post("account/leverage", "update_leverage", {"symbol": symbol, "leverage": leverage}, keypair)
+    if ok:
+        return {"success": True, "leverage": leverage, "message": f"Leverage set to {leverage}x on {symbol}", "dry_run": False}
+    return {"success": False, "leverage": None, "message": f"Leverage update failed: {result.get('error')}", "dry_run": False}
+
+
+def update_margin_mode(symbol: str, isolated: bool, keypair: Keypair, dry_run: bool = True) -> dict:
+    """
+    Switch a symbol between cross (isolated=False) and isolated (True) margin.
+
+    Uses POST /api/v1/account/margin (signing op "update_margin_mode").
+    """
+    if dry_run:
+        mode = "isolated" if isolated else "cross"
+        return {"success": True, "mode": mode, "message": f"[DRY RUN] Would set {mode} margin on {symbol}", "dry_run": True}
+
+    ok, result = _signed_post(
+        "account/margin", "update_margin_mode",
+        {"symbol": symbol, "is_isolated": bool(isolated)}, keypair,
+    )
+    if ok:
+        mode = "isolated" if isolated else "cross"
+        return {"success": True, "mode": mode, "message": f"Margin mode set to {mode} on {symbol}", "dry_run": False}
+    return {"success": False, "mode": None, "message": f"Margin mode update failed: {result.get('error')}", "dry_run": False}
+
+
+def get_open_orders(wallet_address: str) -> list:
+    """
+    Fetch all resting (open) orders for a wallet.
+
+    Uses GET /api/v1/orders?account=... (no signing required for GET).
+    """
+    try:
+        r = _session.get(
+            f"{get_base_url()}/orders",
+            params={"account": wallet_address},
+            timeout=10,
+        )
+        r.raise_for_status()
+        data = r.json().get("data", [])
+        return data if isinstance(data, list) else []
+    except Exception as e:
+        import sys
+        print(f"[get_open_orders] Error fetching open orders: {e}", file=sys.stderr)
+        return []
+
+
 def get_open_positions(wallet_address: str) -> dict:
     """
     Fetch all open positions for a wallet from Pacifica API.
@@ -884,11 +1263,17 @@ def _get_market_info(symbol: str) -> Optional[dict]:
 
         for market in data:
             if market.get("symbol") == symbol:
-                return {
+                info = {
                     "lot_size": float(market.get("lot_size", 0.0001)),
                     "tick_size": float(market.get("tick_size", 0.01)),
                     "min_order_size": float(market.get("min_order_size", 10)),
                 }
+                try:
+                    if market.get("max_leverage") is not None:
+                        info["max_leverage"] = int(market.get("max_leverage"))
+                except (TypeError, ValueError):
+                    pass
+                return info
 
         # Fallback: return sensible defaults if symbol not found
         return {

@@ -110,6 +110,14 @@ class PacificaPilotApp(App):
         self._init_chat_agent()
 
         # Header prices refresh every 30s (handled in header.py itself)
+        # Focus the input on launch so typing (and "/") works immediately.
+        try:
+            from textual.widgets import Input as _Input
+
+            self.query_one("#input-field", _Input).focus()
+        except Exception:
+            pass
+
         # Sidebar refresh every 10s
         self.set_interval(10, self._refresh_sidebar_if_running)
 
@@ -118,7 +126,50 @@ class PacificaPilotApp(App):
         # Load session history asynchronously
         self.call_later(self._load_session_history)
 
+        # Start the Telegram bot if remote mode was enabled earlier
+        self._maybe_start_telegram_bot()
+
         chat.add_system_event("TUI ready — type a message or /help")
+
+    def _maybe_start_telegram_bot(self) -> None:
+        """Launch the Telegram polling bot in a background thread.
+
+        Runs only when remote mode is enabled AND a bot token is saved.
+        Re-checks on every launch so `/remote enable` takes effect
+        after a restart without any extra steps.
+        """
+        try:
+            from ...storage.config import load_config, load_secrets
+
+            if not load_config().get("remote_mode_enabled", False):
+                return
+            if not load_secrets().get("TELEGRAM_BOT_TOKEN"):
+                self.query_one(ChatPanel).add_system_event(
+                    "Remote mode is on but no Telegram token is saved — "
+                    "use /apikey telegram <token>"
+                )
+                return
+
+            import asyncio
+
+            from ...telegram import TelegramBot
+
+            def _run() -> None:
+                try:
+                    asyncio.run(TelegramBot().start())
+                except Exception as e:
+                    print(f"[Telegram] bot stopped: {e}")
+
+            thread = threading.Thread(target=_run, daemon=True, name="TelegramBot")
+            thread.start()
+            self.query_one(ChatPanel).add_system_event(
+                "Telegram bot started — message it with /start to pair."
+            )
+        except Exception as e:
+            try:
+                self.query_one(ChatPanel).add_system_event(f"Telegram bot failed to start: {e}")
+            except Exception:
+                pass
 
     def _refresh_sidebar_if_running(self) -> None:
         """Refresh sidebar data from shared state."""
@@ -284,7 +335,15 @@ class PacificaPilotApp(App):
             elif cmd in ("/resume", "/loop on"):
                 self._cmd_resume()
             elif cmd == "/remote":
-                chat.add_agent_message("Telegram mode: /remote enable | disable")
+                # Delegate to ChatAgent so enable/disable + pairing codes work.
+                if not self._chat_agent:
+                    chat.add_agent_message("Chat agent not initialised.")
+                else:
+                    response = self._chat_agent.handle_message(text)
+                    chat.add_agent_message(response)
+                    # Just enabled mid-session → boot the bot now, no restart needed.
+                    if response.startswith("✓ Remote mode enabled"):
+                        self._maybe_start_telegram_bot()
             elif cmd in ("/exit", "/quit"):
                 self.action_quit_confirm()
             elif cmd in ("/clear",):

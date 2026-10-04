@@ -92,6 +92,15 @@ class LoopAgent:
             print("[LoopAgent] ERROR: No symbols configured")
             return
 
+        if self.config.get("use_ws_feed", False):
+            try:
+                from ..core import get_shared_feed
+
+                get_shared_feed(self.config.get("symbols", []))
+                print("[LoopAgent] WebSocket live feed started")
+            except Exception as e:
+                print(f"[LoopAgent] WS feed failed to start, using REST: {e}")
+
         self.running = True
         self._run_loop()
 
@@ -550,6 +559,28 @@ class LoopAgent:
             actual_price = order_result.get('avg_price', expected_price)
             from ..core import calculate_slippage_pct
             entry_slippage = calculate_slippage_pct(expected_price, actual_price, side)
+
+            # Attach native exchange-side TP/SL so protection survives restarts
+            if not order_result['dry_run'] and self.config.get('use_native_tpsl', False):
+                from ..core import set_position_tpsl
+
+                sl_pct = self.config.get('stop_loss_pct', 3.0) / 100
+                tp_pct = self.config.get('take_profit_pct', 6.0) / 100
+                if side == 'bid':  # long: TP above, SL below
+                    tp_price = actual_price * (1 + tp_pct)
+                    sl_price = actual_price * (1 - sl_pct)
+                else:  # short: TP below, SL above
+                    tp_price = actual_price * (1 - tp_pct)
+                    sl_price = actual_price * (1 + sl_pct)
+                tpsl_result = set_position_tpsl(
+                    symbol=symbol,
+                    side=side,
+                    keypair=self.keypair,
+                    take_profit_price=round(tp_price, 2),
+                    stop_loss_price=round(sl_price, 2),
+                    dry_run=False,
+                )
+                print(f"  Native TP/SL: {tpsl_result['message']}")
 
             # Record position
             if not order_result['dry_run']:

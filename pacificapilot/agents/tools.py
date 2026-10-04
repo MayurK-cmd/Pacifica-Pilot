@@ -133,6 +133,69 @@ TRADING_TOOLS = [
             "required": ["symbol"],
         },
     },
+    {
+        "name": "get_open_orders",
+        "description": "List all resting (unfilled) limit/stop orders with prices, amounts, fill status and order IDs. Use when the user asks about open orders, resting orders, or what is waiting to fill.",
+        "input_schema": {
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    },
+    {
+        "name": "cancel_order",
+        "description": "Cancel one resting order by its order ID. Requires explicit confirmation before executing. Use when the user wants to cancel/remove a specific open order.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "order_id": {
+                    "type": "string",
+                    "description": "Exchange order ID (or client order ID) to cancel",
+                },
+                "symbol": {
+                    "type": "string",
+                    "description": "Market symbol of the order (e.g., 'BTC')",
+                },
+            },
+            "required": ["order_id", "symbol"],
+        },
+    },
+    {
+        "name": "cancel_all_orders",
+        "description": "Cancel all resting orders, optionally limited to one symbol. Requires explicit confirmation before executing. Use when the user says 'cancel all orders' or 'clear the book'.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "symbol": {
+                    "type": "string",
+                    "description": "Optional market symbol to limit cancellation (omit for all symbols)",
+                },
+            },
+            "required": [],
+        },
+    },
+    {
+        "name": "set_position_tpsl",
+        "description": "Attach native exchange-side take-profit and/or stop-loss to an open position so protection survives restarts. Requires explicit confirmation before executing. Prices are trigger prices.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "symbol": {
+                    "type": "string",
+                    "description": "Market symbol of the open position",
+                },
+                "take_profit_price": {
+                    "type": "number",
+                    "description": "Take-profit trigger price (omit to skip)",
+                },
+                "stop_loss_price": {
+                    "type": "number",
+                    "description": "Stop-loss trigger price (omit to skip)",
+                },
+            },
+            "required": ["symbol"],
+        },
+    },
 ]
 
 
@@ -253,6 +316,89 @@ def execute_tool(
                     "dry_run": config.get("dry_run", True),
                 },
                 "message": "\n".join(preview_lines),
+            }
+
+        elif tool_name == "get_open_orders":
+            from ..core import get_open_orders as _get_open_orders
+
+            orders = _get_open_orders(wallet_address)
+            if not orders:
+                return {"success": True, "result": "No open orders."}
+            lines = ["Open orders:"]
+            for o in orders:
+                lines.append(
+                    f"  #{o.get('order_id')} {o.get('symbol')} {o.get('side')} "
+                    f"{o.get('order_type', '?')} @ ${o.get('price', '?')} "
+                    f"| amount {o.get('initial_amount', '?')} filled {o.get('filled_amount', 0)}"
+                )
+            return {"success": True, "result": "\n".join(lines)}
+
+        elif tool_name == "cancel_order":
+            order_id = str(tool_input.get("order_id", ""))
+            symbol = str(tool_input.get("symbol", "")).upper()
+            if not order_id or not symbol:
+                return {"success": False, "error": "Provide order_id and symbol."}
+            return {
+                "success": True,
+                "needs_confirmation": True,
+                "confirmation_data": {
+                    "cancel_order": True,
+                    "order_id": order_id,
+                    "symbol": symbol,
+                    "dry_run": config.get("dry_run", True),
+                },
+                "message": f"Ready to cancel order #{order_id} on {symbol}",
+            }
+
+        elif tool_name == "cancel_all_orders":
+            symbol = str(tool_input.get("symbol", "") or "").upper() or None
+            scope = symbol or "ALL symbols"
+            return {
+                "success": True,
+                "needs_confirmation": True,
+                "confirmation_data": {
+                    "cancel_all_orders": True,
+                    "symbol": symbol,
+                    "dry_run": config.get("dry_run", True),
+                },
+                "message": f"Ready to cancel all resting orders for {scope}",
+            }
+
+        elif tool_name == "set_position_tpsl":
+            from ..core import get_open_positions as _get_positions
+
+            symbol = str(tool_input.get("symbol", "")).upper()
+            positions = _get_positions(wallet_address)
+            if symbol not in positions:
+                return {"success": False, "error": f"No open position for {symbol}"}
+            try:
+                tp = tool_input.get("take_profit_price")
+                sl = tool_input.get("stop_loss_price")
+                tp = float(tp) if tp is not None else None
+                sl = float(sl) if sl is not None else None
+            except (TypeError, ValueError):
+                return {"success": False, "error": "TP/SL prices must be numbers."}
+            if tp is None and sl is None:
+                return {"success": False, "error": "Provide take_profit_price and/or stop_loss_price."}
+            pos = positions[symbol]
+            side_label = "LONG" if pos["side"] == "bid" else "SHORT"
+            legs = []
+            if tp is not None:
+                legs.append(f"TP ${tp:,.2f}")
+            if sl is not None:
+                legs.append(f"SL ${sl:,.2f}")
+            return {
+                "success": True,
+                "needs_confirmation": True,
+                "confirmation_data": {
+                    "set_tpsl": True,
+                    "symbol": symbol,
+                    "side": pos["side"],
+                    "take_profit_price": tp,
+                    "stop_loss_price": sl,
+                    "dry_run": config.get("dry_run", True),
+                },
+                "message": f"Ready to set native TP/SL on {symbol} {side_label}: {' | '.join(legs)} (survives restarts)",
             }
 
         elif tool_name == "get_positions":
@@ -582,6 +728,46 @@ def confirm_and_execute(
                 "success": not any_failed,
                 "message": "\n".join(results) if results else "No positions to close",
             }
+
+        elif confirmation_data.get("cancel_order"):
+            from ..core import cancel_order as _cancel_order
+
+            result = _cancel_order(
+                symbol=confirmation_data["symbol"],
+                keypair=keypair,
+                order_id=confirmation_data["order_id"],
+                dry_run=config.get("dry_run", True),
+            )
+            if result["success"]:
+                return {"success": True, "message": f"✓ {result['message']}"}
+            return {"success": False, "error": f"Cancel failed: {result['message']}"}
+
+        elif confirmation_data.get("cancel_all_orders"):
+            from ..core import cancel_all_orders as _cancel_all_orders
+
+            result = _cancel_all_orders(
+                keypair=keypair,
+                symbol=confirmation_data.get("symbol"),
+                dry_run=config.get("dry_run", True),
+            )
+            if result["success"]:
+                return {"success": True, "message": f"✓ {result['message']}"}
+            return {"success": False, "error": f"Cancel-all failed: {result['message']}"}
+
+        elif confirmation_data.get("set_tpsl"):
+            from ..core import set_position_tpsl as _set_tpsl
+
+            result = _set_tpsl(
+                symbol=confirmation_data["symbol"],
+                side=confirmation_data["side"],
+                keypair=keypair,
+                take_profit_price=confirmation_data.get("take_profit_price"),
+                stop_loss_price=confirmation_data.get("stop_loss_price"),
+                dry_run=config.get("dry_run", True),
+            )
+            if result["success"]:
+                return {"success": True, "message": f"✓ {result['message']}"}
+            return {"success": False, "error": f"TPSL failed: {result['message']}"}
 
         else:
             return {

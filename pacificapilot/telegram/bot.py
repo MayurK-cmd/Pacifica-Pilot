@@ -90,9 +90,8 @@ class TelegramBot:
 
         code = context.args[0]
 
-        # Verify code (in real implementation, generate and verify from local terminal)
-        # For now, accept any 6-digit code and add chat ID
-        if len(code) == 6 and code.isdigit():
+        ok, reason = verify_pairing_code(code)
+        if ok:
             self.allowed_chat_ids.add(chat_id)
 
             # Update config
@@ -106,7 +105,7 @@ class TelegramBot:
             )
             print(f"[Telegram] Paired with chat ID: {chat_id}")
         else:
-            await update.message.reply_text("Invalid pairing code. Must be 6 digits.")
+            await update.message.reply_text(f"❌ {reason}")
 
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle all text messages."""
@@ -151,3 +150,41 @@ def generate_pairing_code() -> str:
     """Generate a 6-digit pairing code."""
     import random
     return str(random.randint(100000, 999999))
+
+
+PAIRING_CODE_TTL_SECONDS = 600  # pairing codes expire after 10 minutes
+
+
+def verify_pairing_code(code: str) -> tuple[bool, str]:
+    """Verify a user-supplied pairing code against the pending one in config.
+
+    Codes are single-use and expire after PAIRING_CODE_TTL_SECONDS.
+    On success the pending code is cleared so it cannot be reused.
+
+    Returns:
+        (ok: bool, message: str) — message explains acceptance or rejection.
+    """
+    import time
+
+    from ..storage import load_config, update_config
+
+    if not code or len(code) != 6 or not code.isdigit():
+        return False, "Invalid pairing code. Must be 6 digits."
+
+    config = load_config()
+    pending = config.get("telegram_pairing_code")
+    issued_at = config.get("telegram_pairing_issued_at", 0) or 0
+
+    if not pending:
+        return False, "No pairing code has been issued. Run `/remote enable` in the terminal first."
+
+    if code != pending:
+        return False, "Wrong pairing code. Check the code shown by `/remote enable`."
+
+    if int(time.time()) - int(issued_at) > PAIRING_CODE_TTL_SECONDS:
+        update_config({"telegram_pairing_code": None, "telegram_pairing_issued_at": 0})
+        return False, "Pairing code expired. Run `/remote enable` again for a fresh code."
+
+    # Single-use: clear before returning success
+    update_config({"telegram_pairing_code": None, "telegram_pairing_issued_at": 0})
+    return True, "Code accepted."

@@ -5,15 +5,97 @@ Fetches price data from Pacifica and Binance, calculates RSI, MACD, Bollinger Ba
 """
 
 from typing import Optional
+import time
 import requests
 
+from .urls import get_base_url
+
 BINANCE_BASE = "https://api.binance.com/api/v3"
+
+# Pacifica-native kline intervals (docs: 1m,3m,5m,15m,30m,1h,2h,4h,8h,12h,1d)
+PACIFICA_INTERVAL_MS = {
+    "1m": 60_000, "3m": 180_000, "5m": 300_000, "15m": 900_000,
+    "30m": 1_800_000, "1h": 3_600_000, "2h": 7_200_000, "4h": 14_400_000,
+    "8h": 28_800_000, "12h": 43_200_000, "1d": 86_400_000,
+}
 
 _session = requests.Session()
 _session.headers.update({
     "Accept": "application/json",
     "User-Agent": "PacificaPilot/0.1.0"
 })
+
+
+def fetch_pacifica_klines(symbol: str, interval: str = "1h", limit: int = 100) -> Optional[list]:
+    """
+    Fetch candles from Pacifica GET /api/v1/kline.
+
+    Returns [{t, o, h, l, c, v}] (floats) or None on failure/unsupported interval.
+    """
+    span = PACIFICA_INTERVAL_MS.get(interval)
+    if span is None:
+        return None
+    try:
+        limit = max(2, min(int(limit), 500))
+        end = int(time.time() * 1000)
+        start = end - limit * span
+        r = _session.get(
+            f"{get_base_url()}/kline",
+            params={
+                "symbol": symbol,
+                "interval": interval,
+                "start_time": start,
+                "end_time": end,
+            },
+            timeout=10,
+        )
+        r.raise_for_status()
+        data = r.json().get("data", [])
+        candles = []
+        for k in data:
+            try:
+                candles.append({
+                    "t": int(k.get("t", 0)),
+                    "o": float(k.get("o", 0)),
+                    "h": float(k.get("h", 0)),
+                    "l": float(k.get("l", 0)),
+                    "c": float(k.get("c", 0)),
+                    "v": float(k.get("v", 0)),
+                })
+            except (TypeError, ValueError):
+                continue
+        return candles or None
+    except Exception:
+        return None
+
+
+def _fetch_candles(symbol: str, interval: str, limit: int) -> list:
+    """
+    Pacifica klines first, Binance fallback. Always returns a (possibly empty)
+    list of {t,o,h,l,c,v} dicts so indicator math stays source-agnostic.
+    """
+    candles = fetch_pacifica_klines(symbol, interval, limit)
+    if candles:
+        return candles
+    try:
+        r = _session.get(
+            f"{BINANCE_BASE}/klines",
+            params={"symbol": f"{symbol}USDT", "interval": interval, "limit": limit},
+            timeout=10,
+        )
+        r.raise_for_status()
+        out = []
+        for k in r.json():
+            try:
+                out.append({
+                    "t": int(k[0]), "o": float(k[1]), "h": float(k[2]),
+                    "l": float(k[3]), "c": float(k[4]), "v": float(k[5]),
+                })
+            except (TypeError, ValueError, IndexError):
+                continue
+        return out
+    except Exception:
+        return []
 
 
 def _calculate_macd(symbol: str, interval: str) -> Optional[dict]:
@@ -30,26 +112,14 @@ def _calculate_macd(symbol: str, interval: str) -> Optional[dict]:
     - MACD crossing above signal = buy signal
     - MACD crossing below signal = sell signal
     """
-    binance_symbol = f"{symbol}USDT"
-
     try:
         # Need 35 candles for 26-period EMA + 9-period signal
-        r = _session.get(
-            f"{BINANCE_BASE}/klines",
-            params={
-                "symbol": binance_symbol,
-                "interval": interval,
-                "limit": 35,
-            },
-            timeout=10,
-        )
-        r.raise_for_status()
-        klines = r.json()
+        candles = _fetch_candles(symbol, interval, 35)
 
-        if len(klines) < 35:
+        if len(candles) < 35:
             return None
 
-        closes = [float(k[4]) for k in klines]
+        closes = [c["c"] for c in candles]
 
         # Calculate EMAs
         ema_12 = _calculate_ema(closes, 12)
@@ -130,27 +200,16 @@ def _calculate_bollinger_bands(symbol: str, interval: str, current_price: float)
     - Wide bands (high bandwidth) = high volatility
     - Price breaking outside bands = strong momentum
     """
-    binance_symbol = f"{symbol}USDT"
     period = 20
     std_dev_multiplier = 2
 
     try:
-        r = _session.get(
-            f"{BINANCE_BASE}/klines",
-            params={
-                "symbol": binance_symbol,
-                "interval": interval,
-                "limit": period + 1,
-            },
-            timeout=10,
-        )
-        r.raise_for_status()
-        klines = r.json()
+        candles = _fetch_candles(symbol, interval, period + 1)
 
-        if len(klines) < period:
+        if len(candles) < period:
             return None
 
-        closes = [float(k[4]) for k in klines]
+        closes = [c["c"] for c in candles]
 
         # Calculate middle band (SMA)
         middle = sum(closes[-period:]) / period
@@ -198,50 +257,64 @@ def _fetch_volume_24h(symbol: str) -> Optional[dict]:
     - Low volume = weak interest, move may reverse
     - Volume confirms price moves: price up + volume up = strong trend
     """
-    binance_symbol = f"{symbol}USDT"
-
     try:
-        # Get 24h ticker data
-        r = _session.get(
-            f"{BINANCE_BASE}/ticker/24hr",
-            params={"symbol": binance_symbol},
-            timeout=5,
-        )
-        r.raise_for_status()
-        data = r.json()
+        # Prefer Pacifica-native hourly candles: last 24h vs prior 24h.
+        candles = _fetch_candles(symbol, "1h", 49)
+        volumes = None
+        if len(candles) >= 48:
+            recent = sum(c["v"] for c in candles[-24:])
+            prior = sum(c["v"] for c in candles[-48:-24]) or 1e-9
+            volumes = (recent, prior)
 
-        volume_24h = float(data.get("volume", 0))
+        if volumes is None:
+            # Binance fallback: 24h ticker vs 7-day average
+            binance_symbol = f"{symbol}USDT"
+            r = _session.get(
+                f"{BINANCE_BASE}/ticker/24hr",
+                params={"symbol": binance_symbol},
+                timeout=5,
+            )
+            r.raise_for_status()
+            data = r.json()
 
-        # Get 7-day average for comparison
-        r2 = _session.get(
-            f"{BINANCE_BASE}/klines",
-            params={
-                "symbol": binance_symbol,
-                "interval": "1d",
-                "limit": 7,
-            },
-            timeout=10,
-        )
-        r2.raise_for_status()
-        klines = r2.json()
+            volume_24h = float(data.get("volume", 0))
 
-        if len(klines) >= 7:
-            avg_volume = sum(float(k[5]) for k in klines) / len(klines)
+            r2 = _session.get(
+                f"{BINANCE_BASE}/klines",
+                params={
+                    "symbol": binance_symbol,
+                    "interval": "1d",
+                    "limit": 7,
+                },
+                timeout=10,
+            )
+            r2.raise_for_status()
+            klines = r2.json()
 
-            # Determine volume signal
+            if len(klines) >= 7:
+                avg_volume = sum(float(k[5]) for k in klines) / len(klines)
+            else:
+                return {"volume": round(volume_24h, 2), "signal": "normal"}
+
             if volume_24h > avg_volume * 1.5:
                 signal = "high"  # 50% above average
             elif volume_24h < avg_volume * 0.5:
                 signal = "low"  # 50% below average
             else:
                 signal = "normal"
+
+            return {"volume": round(volume_24h, 2), "signal": signal}
+
+        recent, prior = volumes
+        ratio = recent / prior if prior > 0 else 1.0
+        if ratio > 1.5:
+            signal = "high"
+        elif ratio < 0.5:
+            signal = "low"
         else:
             signal = "normal"
 
-        return {
-            "volume": round(volume_24h, 2),
-            "signal": signal,
-        }
+        return {"volume": round(recent, 2), "signal": signal}
     except Exception:
         return None
 
@@ -255,7 +328,30 @@ def fetch_pacifica_price(symbol: str) -> Optional[dict]:
 
     Returns:
         {"mark_price": float, "funding_rate": float} or None
+
+    Checks the shared WebSocket feed first (if running), then REST.
     """
+    try:
+        from .wsfeed import live_price
+
+        live = live_price(symbol)
+        if live:
+            # WS gives price only; funding still needs REST below.
+            funding = None
+            try:
+                from .urls import get_base_url as _gbu
+
+                r0 = _session.get(f"{_gbu()}/info/prices", params={"symbol": symbol}, timeout=5)
+                r0.raise_for_status()
+                for p in r0.json().get("data", []):
+                    if p.get("symbol") == symbol:
+                        funding = float(p.get("funding", 0))
+                        break
+            except Exception:
+                funding = None
+            return {"mark_price": live, "funding_rate": funding or 0}
+    except Exception:
+        pass
     try:
         # Try fetching single symbol first
         from .urls import get_base_url
@@ -329,25 +425,13 @@ def _calculate_rsi(symbol: str, interval: str, period: int = 14) -> Optional[dic
     Returns:
         {"rsi": float, "signal": str} or None
     """
-    binance_symbol = f"{symbol}USDT"
-
     try:
-        r = _session.get(
-            f"{BINANCE_BASE}/klines",
-            params={
-                "symbol": binance_symbol,
-                "interval": interval,
-                "limit": period + 1,
-            },
-            timeout=10,
-        )
-        r.raise_for_status()
-        klines = r.json()
+        candles = _fetch_candles(symbol, interval, period + 1)
 
-        if len(klines) < period + 1:
+        if len(candles) < period + 1:
             return None
 
-        closes = [float(k[4]) for k in klines]
+        closes = [c["c"] for c in candles]
         gains = []
         losses = []
 

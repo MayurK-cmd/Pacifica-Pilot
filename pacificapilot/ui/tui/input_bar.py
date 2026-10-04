@@ -12,10 +12,11 @@ All colors via Rich markup — no hex in Python.
 from __future__ import annotations
 
 from textual.app import ComposeResult
+from textual.geometry import Offset, Region, Spacing
 from textual.widgets import Input, Static
 from textual.widget import Widget
 from textual.containers import Horizontal
-from textual_autocomplete import AutoComplete, DropdownItem
+from textual_autocomplete import AutoComplete, DropdownItem, TargetState
 
 # Slash command definitions for autocomplete
 # main = plain command text (what gets inserted into input on select)
@@ -45,6 +46,58 @@ SLASH_COMMANDS = [
 ]
 
 
+class SlashCommandAutoComplete(AutoComplete):
+    """Claude Code-style slash menu: opens on `/`, shows all commands,
+    fuzzy-filters as you type, and renders ABOVE the bottom-docked input
+    (the base class aligns below the cursor, which is off-screen here)."""
+
+    def get_search_string(self, target_state: TargetState) -> str:
+        text = target_state.text[: target_state.cursor_position]
+        # Only slash commands trigger the menu — normal chat text hides it.
+        # A lone "/" yields every command since all candidates start with "/".
+        return text if text.startswith("/") else ""
+
+    def should_show_dropdown(self, search_string: str) -> bool:
+        if not search_string.startswith("/"):
+            return False
+        option_count = self.option_list.option_count
+        if option_count == 0:
+            return False
+        if option_count == 1:
+            only = self.option_list.get_option_at_index(0).prompt
+            text = only.plain if hasattr(only, "plain") else only
+            # Fully typed command (e.g. "/help") — nothing left to pick.
+            if text == search_string:
+                return False
+        return True
+
+    def _align_to_target(self) -> None:
+        """Place the dropdown above the input, clamped inside the screen."""
+        x, y = self.target.cursor_screen_offset
+        dropdown = self.option_list
+        width, height = dropdown.outer_size
+        if height <= 0:
+            height = min(max(dropdown.option_count + 2, 4), 22)
+        # y - height puts the bottom edge one row above the input line.
+        x, y, _w, _h = Region(x - 1, y - height, width, height).constrain(
+            "inside",
+            "none",
+            Spacing.all(0),
+            self.screen.scrollable_content_region,
+        )
+        self.absolute_offset = Offset(x, y)
+
+    def apply_completion(self, value: str, state: TargetState) -> None:
+        """Insert the command plus a trailing space, then hide the menu."""
+        target = self.target
+        with self.prevent(Input.Changed):
+            target.value = ""
+            target.insert_text_at_cursor(value + " ")
+        new_state = self._get_target_state()
+        self._rebuild_options(new_state, self.get_search_string(new_state))
+        self.post_completion()
+
+
 class InputBar(Widget):
     """Fixed bottom bar with text input and slash autocomplete."""
 
@@ -58,10 +111,11 @@ class InputBar(Widget):
         with Horizontal(id="input-row"):
             yield Static("[bold #3b82f6]>[/] ", id="input-prompt")
             input_widget = Input(placeholder="Message or /command...", id="input-field")
-            yield AutoComplete(
+            yield SlashCommandAutoComplete(
                 input_widget,
                 SLASH_COMMANDS,
                 prevent_default_enter=True,
+                id="autocomplete",
             )
             yield input_widget
         yield Static(
