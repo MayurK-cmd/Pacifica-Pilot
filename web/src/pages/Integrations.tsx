@@ -381,76 +381,8 @@ export function Integrations() {
 
   return (
     <div className="bg-surface text-on-surface selection:bg-primary-container selection:text-on-primary-container min-h-screen">
-      {/* Header Navigation */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-surface-container-lowest/90 backdrop-blur-md shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
-        <div className="h-16 w-full px-margin-desktop flex items-center justify-between gap-space-lg">
-          <div className="flex items-center gap-space-lg">
-            <Link className="flex items-center gap-space-sm" to="/">
-              <div className="w-8 h-8 rounded bg-primary-container flex items-center justify-center font-bold text-on-primary-container text-lg">
-                P
-              </div>
-              <span className="font-headline-md text-headline-md tracking-tight text-on-surface">PacificaPilot</span>
-              <span className="font-label-caps text-label-caps text-primary-container bg-surface-container-high px-space-xs py-0.5 rounded">
-                CLI
-              </span>
-            </Link>
-            <nav className="hidden xl:flex items-center gap-space-xs">
-              <Link className="font-body-md text-body-md text-on-surface-variant hover:text-on-surface px-space-sm py-1.5 transition-colors" to="/">
-                Overview
-              </Link>
-              <Link className="font-body-md text-body-md text-on-surface-variant hover:text-on-surface px-space-sm py-1.5 transition-colors" to="/dashboard">
-                Dashboard
-              </Link>
-              <Link className="font-body-md text-body-md text-on-surface-variant hover:text-on-surface px-space-sm py-1.5 transition-colors" to="/markets">
-                Markets
-              </Link>
-              <Link className="font-body-md text-body-md text-on-surface-variant hover:text-on-surface px-space-sm py-1.5 transition-colors" to="/portfolio">
-                Portfolio
-              </Link>
-              <Link className="font-body-md text-body-md text-on-surface-variant hover:text-on-surface px-space-sm py-1.5 transition-colors" to="/agents">
-                Agents
-              </Link>
-              <Link className="px-space-sm py-1.5 transition-colors text-on-surface font-semibold bg-surface-container rounded" to="/integrations">
-                Integrations
-              </Link>
-              <Link className="font-body-md text-body-md text-on-surface-variant hover:text-on-surface px-space-sm py-1.5 transition-colors" to="/docs">
-                Docs
-              </Link>
-            </nav>
-          </div>
-          <div className="flex items-center gap-space-sm">
-            <a
-              className="hidden sm:flex items-center gap-space-xs bg-surface-container-low px-space-sm py-1.5 rounded hover:bg-surface-container-high transition-colors"
-              href="https://github.com/pacificapilot/cli"
-              rel="noreferrer"
-              target="_blank"
-            >
-              <span className="font-data-micro text-data-micro text-secondary">★</span>
-              <span className="font-data-tabular text-data-tabular text-on-surface-variant">Star</span>
-              <span className="font-data-tabular text-data-tabular text-on-surface font-semibold">2.4k</span>
-            </a>
-            <Link
-              className="hidden md:flex font-body-sm text-body-sm text-on-surface-variant hover:text-on-surface px-space-sm py-1.5 transition-colors"
-              to="/docs"
-            >
-              Documentation
-            </Link>
-            <Link
-              className="bg-primary-container text-on-primary-container font-headline-md text-headline-md px-space-md py-1.5 rounded hover:bg-primary-fixed transition-colors font-medium flex items-center gap-space-xs"
-              to="/docs"
-            >
-              <span className="font-label-caps text-label-caps">$</span>
-              <span>Install CLI</span>
-            </Link>
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-              <span className="material-symbols-outlined text-on-primary text-[18px]">person</span>
-            </div>
-          </div>
-        </div>
-      </header>
-
       {/* Main Body */}
-      <main className="w-full pt-16 bg-surface">
+      <main className="w-full bg-surface">
         <div className="flex flex-col w-full">
           {/* Technical Ambience Background */}
           <div className="relative w-full overflow-hidden">

@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { useTheme, useThemeToggle } from "../lib/theme";
+import { Navbar } from "../components/layout/Navbar";
 import { fetchMarkets } from "../api/pacifica";
 import { fmtPct, fmtPrice, pnlClass } from "../lib/utils";
 
@@ -38,8 +37,6 @@ const FAQS = [
 
 export function Landing() {
   const navigate = useNavigate();
-  const theme = useTheme();
-  const toggleTheme = useThemeToggle();
 
   // Install command state
   const [installTab, setInstallTab] = useState<"pip" | "npm" | "docker" | "git">("pip");
@@ -88,77 +85,8 @@ export function Landing() {
 
   return (
     <div className="min-h-screen bg-surface font-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container">
-      {/* HEADER */}
-      <header className="fixed top-0 w-full z-50 bg-surface-container-lowest/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.4)]">
-        <div className="h-16 w-full px-margin-desktop flex items-center justify-between gap-gutter-desktop">
-          <div className="flex items-center gap-space-md">
-            <Link to="/" className="flex items-center gap-space-sm">
-              <div className="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center">
-                <span className="material-symbols-outlined text-primary-container text-body-lg">token</span>
-              </div>
-              <span className="font-headline-md text-headline-md tracking-tight text-on-surface font-bold uppercase">
-                PACIFICA PILOT
-              </span>
-            </Link>
-            <span className="hidden sm:inline-flex items-center font-label-caps text-label-caps px-space-xs py-0.5 rounded bg-surface-container-high text-secondary border border-secondary-container/20 tracking-wider">
-              NON-CUSTODIAL INTELLIGENCE
-            </span>
-          </div>
-          <nav className="hidden lg:flex items-center gap-space-xs">
-            <Link
-              to="/dashboard"
-              className="px-space-md py-space-xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors rounded"
-            >
-              Dashboard
-            </Link>
-            <Link
-              to="/markets"
-              className="px-space-md py-space-xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors rounded"
-            >
-              Markets
-            </Link>
-            <Link
-              to="/portfolio"
-              className="px-space-md py-space-xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors rounded"
-            >
-              Portfolio
-            </Link>
-            <Link
-              to="/agents"
-              className="px-space-md py-space-xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors rounded"
-            >
-              Agents
-            </Link>
-            <Link
-              to="/docs"
-              className="px-space-md py-space-xs font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors rounded"
-            >
-              Docs
-            </Link>
-          </nav>
-          <div className="flex items-center gap-space-sm">
-            <button
-              aria-label="Toggle theme"
-              onClick={toggleTheme}
-              className="p-space-xs rounded bg-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
-              type="button"
-            >
-              <span className="material-symbols-outlined text-body-lg">
-                {theme === "dark" ? "light_mode" : "dark_mode"}
-              </span>
-            </button>
-            <Link
-              to="/docs"
-              className="hidden md:flex items-center p-space-xs rounded bg-surface-container-low text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
-            >
-              <span className="material-symbols-outlined text-body-lg">menu_book</span>
-            </Link>
-            <span className="pp-wallet-btn">
-              <WalletMultiButton />
-            </span>
-          </div>
-        </div>
-      </header>
+      {/* UNIVERSAL NAVBAR */}
+      <Navbar />
 
       {/* MAIN CONTENT */}
       <main className="w-full pt-16 bg-surface">
