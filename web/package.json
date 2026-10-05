@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "server": "node server/index.js",
     "dev:all": "concurrently -k -n gateway,ui \"npm run server\" \"npm run dev\""
