@@ -12,6 +12,7 @@ const AssetDetail = lazy(() => import("./pages/AssetDetail").then((m) => ({ defa
 const Portfolio = lazy(() => import("./pages/Portfolio").then((m) => ({ default: m.Portfolio })));
 const Agents = lazy(() => import("./pages/Agents").then((m) => ({ default: m.Agents })));
 const Docs = lazy(() => import("./pages/Docs").then((m) => ({ default: m.Docs })));
+const Integrations = lazy(() => import("./pages/Integrations").then((m) => ({ default: m.Integrations })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,6 +38,7 @@ export function App() {
                 <Route path="markets/:symbol" element={<AssetDetail />} />
                 <Route path="portfolio" element={<Portfolio />} />
                 <Route path="agents" element={<Agents />} />
+                <Route path="integrations" element={<Integrations />} />
                 <Route path="docs" element={<Docs />} />
                 <Route path="*" element={<Dashboard />} />
               </Route>

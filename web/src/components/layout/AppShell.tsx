@@ -12,6 +12,7 @@ const links = [
   { value: "/markets", label: "Markets" },
   { value: "/portfolio", label: "Portfolio" },
   { value: "/agents", label: "Agents" },
+  { value: "/integrations", label: "Integrations" },
   { value: "/docs", label: "Docs" },
 ];
 
