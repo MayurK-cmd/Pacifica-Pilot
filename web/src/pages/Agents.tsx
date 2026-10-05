@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { useOutletContext } from "react-router-dom";
+import type { ShellContext } from "../components/layout/AppShell";
 import { askIntel, fetchDigest } from "../api/intel";
 import { GatewayError } from "../api/client";
 import type { ChatMessage, DailyDigest, IntelAction } from "../types/trading";
@@ -54,6 +56,8 @@ const INITIAL_MESSAGES: ChatMessage[] = [
 ];
 
 export function Agents() {
+  const context = useOutletContext<ShellContext>();
+  const account = context?.account || "";
   const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);
   const [inputText, setInputText] = useState("");
   const [quickSymbol, setQuickSymbol] = useState("");

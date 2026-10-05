@@ -30,15 +30,12 @@ export function Navbar() {
       <div className="h-16 w-full max-w-[1920px] mx-auto px-margin md:px-margin-desktop flex items-center justify-between gap-space-md">
         {/* Left: Brand Logo */}
         <div className="flex items-center gap-space-lg">
-          <Link className="flex items-center gap-space-xs group" to="/">
-            <div className="w-8 h-8 rounded bg-primary-container flex items-center justify-center font-bold text-on-primary-container text-base shadow-sm group-hover:bg-primary-fixed transition-colors">
-              P
+          <Link className="flex items-center gap-2.5 group" to="/">
+            <div className="h-7 w-7 rounded bg-primary flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+              <div className="h-2.5 w-2.5 bg-surface rounded-xs"></div>
             </div>
-            <span className="font-headline-md text-headline-md tracking-tight text-on-surface font-semibold">
+            <span className="font-headline-md text-headline-md tracking-tight text-on-surface font-bold">
               PacificaPilot
-            </span>
-            <span className="font-label-caps text-label-caps text-primary-container bg-surface-container-high px-space-xs py-0.5 rounded font-mono">
-              CLI
             </span>
           </Link>
 
@@ -92,13 +89,13 @@ export function Navbar() {
             <WalletMultiButton />
           </div>
 
-          {/* Install CLI CTA */}
+          {/* Install CTA */}
           <Link
             className="bg-primary-container text-on-primary-container font-headline-md text-headline-md px-space-md py-1.5 rounded hover:bg-primary-fixed transition-colors font-medium flex items-center gap-space-xs shadow-sm"
             to="/docs"
           >
             <span className="font-label-caps text-label-caps text-on-primary-container">$</span>
-            <span className="hidden xs:inline">Install CLI</span>
+            <span className="hidden xs:inline">Install</span>
           </Link>
 
           {/* Mobile Menu Button */}
