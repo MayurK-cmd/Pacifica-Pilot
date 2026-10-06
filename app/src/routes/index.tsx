@@ -1,5 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+
+import SpecularButton from "@/components/SpecularButton.jsx";
+import Stepper, { Step } from "@/components/Stepper.jsx";
+import BorderGlow from "@/components/BorderGlow.jsx";
 import {
   Brain,
   MessageSquare,
@@ -23,8 +27,6 @@ import {
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { CodeBlock } from "@/components/CodeBlock";
-import { GlowingCard } from "@/components/effects/GlowingCard";
-import { Aurora } from "@/components/effects/Aurora";
 import { SpotlightButton } from "@/components/effects/SpotlightButton";
 import { BeamBorder } from "@/components/effects/BeamBorder";
 import { DotGrid } from "@/components/effects/DotGrid";
@@ -101,8 +103,10 @@ function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
-      <Hero />
-      <QuickInstall />
+      <div className="relative">
+        <Hero />
+        <QuickInstall />
+      </div>
       <WhatItDoes />
       <MemorySection />
       <HowItWorks />
@@ -118,14 +122,14 @@ function Home() {
 }
 
 function Hero() {
+  const navigate = useNavigate();
   return (
     <section className="relative overflow-hidden">
-      <Aurora />
       <div className="relative mx-auto max-w-6xl px-6 pt-24 pb-20 md:pt-32 md:pb-28">
         <div className="max-w-3xl">
           <div className="inline-flex items-center gap-2 border border-border rounded px-3 py-1 text-xs text-muted-foreground font-mono mb-6">
             <span className="h-1.5 w-1.5 rounded-full bg-primary blink" />
-            v0.1 — open source, MIT · built for Supermemory hackathon
+            v0.1 — open source, MIT
           </div>
           <h1 className="shimmer-text text-4xl md:text-6xl font-bold leading-[1.05] tracking-tight">
             The AI trading agent that actually learns from every trade.
@@ -137,13 +141,36 @@ function Hero() {
             preference, and every pattern across sessions.
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <SpotlightButton href="#install">
-              Get started <ArrowRight className="h-4 w-4" />
-            </SpotlightButton>
-            <SpotlightButton href="/docs" variant="ghost">
+            <SpecularButton
+              textColor="#f8fafc"
+              lineColor="#3b82f6"
+              baseColor="#18181b"
+              onClick={() => document.getElementById("install")?.scrollIntoView({ behavior: "smooth" })}
+            >
+              Get started
+            </SpecularButton>
+            <SpecularButton
+              textColor="inherit"
+              lineColor="#3b82f6"
+              baseColor="transparent"
+              onClick={() => navigate({ to: "/docs" })}
+            >
               Read the docs
-            </SpotlightButton>
+            </SpecularButton>
           </div>
+          <dl className="mt-8 flex flex-wrap gap-x-10 gap-y-4" aria-label="Project traction">
+            {[
+              { value: "300+", label: "PyPI downloads" },
+              { value: "9", label: "Trading tools" },
+            ].map((s) => (
+              <div key={s.label}>
+                <dd className="font-mono text-2xl font-bold" aria-label={`${s.value} ${s.label}`}>
+                  {s.value}
+                </dd>
+                <dt className="mt-1 text-[11px] text-muted-foreground">{s.label}</dt>
+              </div>
+            ))}
+          </dl>
           <div className="mt-8 flex flex-wrap gap-6 text-xs font-mono text-muted-foreground">
             <span>◆ No cloud dependency</span>
             <span>◆ Your keys, your machine</span>
@@ -224,6 +251,25 @@ function QuickInstall() {
   const active = tabs.find((t) => t.id === tab)!;
   return (
     <section id="install" className="mx-auto max-w-6xl px-6 py-20">
+      <div className="mb-10">
+        <Stepper>
+          <Step>
+            <h3 className="text-lg font-semibold">Install the CLI</h3>
+            <p className="mt-1 text-sm text-muted-foreground">One command — Python 3.11+, isolated with pipx.</p>
+            <CodeBlock code="pipx install pacificapilot" lang="bash" />
+          </Step>
+          <Step>
+            <h3 className="text-lg font-semibold">Run guided setup</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Keys, AI provider, risk profile, memory, Telegram.</p>
+            <CodeBlock code="pacifica init" lang="bash" />
+          </Step>
+          <Step>
+            <h3 className="text-lg font-semibold">Launch and trade</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Type /help or just chat naturally. Dry-run is on by default.</p>
+            <CodeBlock code="pacifica start" lang="bash" />
+          </Step>
+        </Stepper>
+      </div>
       <div className="grid md:grid-cols-2 gap-10 items-start">
         <div>
           <p className="text-xs font-mono uppercase tracking-[0.2em] text-primary mb-3">01 — Install</p>
@@ -272,11 +318,11 @@ function WhatItDoes() {
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {features.map((f) => (
-          <GlowingCard key={f.title} className="p-6">
-            <f.icon className="h-5 w-5 text-primary" strokeWidth={1.5} />
-            <h3 className="mt-4 text-base font-semibold">{f.title}</h3>
-            <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{f.body}</p>
-          </GlowingCard>
+          <BorderGlow key={f.title} backgroundColor="#15151a" glowColor="59 130 246" borderRadius={16} className="p-6">
+            <f.icon className="h-5 w-5 text-blue-400" strokeWidth={1.5} />
+            <h3 className="mt-4 text-base font-semibold text-white">{f.title}</h3>
+            <p className="mt-2 text-sm text-zinc-400 leading-relaxed">{f.body}</p>
+          </BorderGlow>
         ))}
       </div>
     </section>
@@ -483,13 +529,13 @@ function ComparisonSection() {
                 <td className="px-5 py-3 text-foreground font-medium">{f}</td>
                 <td className="px-5 py-3">
                   <span className="inline-flex items-center gap-2 text-foreground">
-                    <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />
                     {a}
                   </span>
                 </td>
                 <td className="px-5 py-3">
                   <span className="inline-flex items-center gap-2 text-muted-foreground">
-                    <X className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
+                    <X className="h-3.5 w-3.5 text-red-500 shrink-0" />
                     {b}
                   </span>
                 </td>
@@ -520,11 +566,11 @@ function SecuritySection() {
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {security.map((s) => (
-          <div key={s.title} className="border border-border bg-card rounded p-5">
-            <s.icon className="h-4 w-4 text-primary" strokeWidth={1.5} />
-            <h3 className="mt-3 text-sm font-semibold">{s.title}</h3>
-            <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">{s.body}</p>
-          </div>
+          <BorderGlow key={s.title} backgroundColor="#15151a" glowColor="59 130 246" borderRadius={16} className="p-5">
+            <s.icon className="h-4 w-4 text-blue-400" strokeWidth={1.5} />
+            <h3 className="mt-3 text-sm font-semibold text-white">{s.title}</h3>
+            <p className="mt-1.5 text-xs text-zinc-400 leading-relaxed">{s.body}</p>
+          </BorderGlow>
         ))}
       </div>
     </section>

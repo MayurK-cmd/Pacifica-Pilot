@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { CodeBlock } from "@/components/CodeBlock";
+import LineSidebar from "@/components/LineSidebar.jsx";
 
 export const Route = createFileRoute("/docs")({
   head: () => ({
@@ -37,22 +38,17 @@ function Docs() {
       <div className="mx-auto max-w-6xl px-6 py-12 grid md:grid-cols-[220px_1fr] gap-10">
         <aside className="md:sticky md:top-20 h-max">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-mono mb-3">Docs</p>
-          <nav className="flex md:flex-col gap-1 overflow-x-auto">
-            {sections.map((s) => (
-              <a
-                key={s.id}
-                href={`#${s.id}`}
-                onClick={() => setActive(s.id)}
-                className={`px-3 py-1.5 text-sm rounded transition-colors whitespace-nowrap ${
-                  active === s.id
-                    ? "text-foreground bg-[color:var(--surface-soft)] border-l-2 border-primary"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {s.label}
-              </a>
-            ))}
-          </nav>
+          <LineSidebar
+            items={sections.map((s) => s.label)}
+            onItemClick={(index: number) => {
+              setActive(sections[index].id);
+              document.getElementById(sections[index].id)?.scrollIntoView({ behavior: "smooth" });
+            }}
+            accentColor="#3b82f6"
+            textColor="#71717a"
+            showIndex={false}
+            fontSize={0.85}
+          />
         </aside>
 
         <main className="space-y-16 max-w-3xl">
