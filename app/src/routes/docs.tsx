@@ -26,6 +26,7 @@ const sections = [
   { id: "agents", label: "Agents" },
   { id: "tools", label: "Trading Tools" },
   { id: "commands", label: "Slash Commands" },
+  { id: "telegram", label: "Telegram Remote" },
   { id: "risk", label: "Risk & Security" },
   { id: "tui", label: "The TUI" },
 ];
@@ -96,7 +97,11 @@ function Docs() {
                     ["place_order", "Open LONG/SHORT positions (with confirmation)"],
                     ["close_position", "Close a specific position"],
                     ["close_all_positions", "Flatten the entire book"],
+                    ["cancel_order", "Cancel one resting order by ID (with confirmation)"],
+                    ["cancel_all_orders", "Cancel all resting orders, optionally per symbol"],
+                    ["set_position_tpsl", "Native exchange-side take-profit / stop-loss — survives restarts"],
                     ["get_positions", "Open positions with unrealized PnL"],
+                    ["get_open_orders", "Resting limit/stop orders with prices and fill status"],
                     ["get_account_balance", "USDC balance, equity, available capital"],
                     ["get_market_price", "Price + RSI + MACD + Bollinger + volume + funding + regime"],
                     ["get_trade_history", "Past trades with PnL and duration"],
@@ -119,21 +124,25 @@ function Docs() {
                 <tbody>
                   {[
                     ["/help", "Show all commands"],
+                    ["/config", "View or edit settings"],
+                    ["/apikey", "Manage AI provider and Supermemory keys"],
+                    ["/mode", "Switch testnet / mainnet"],
+                    ["/status", "Agent status + decisions"],
+                    ["/positions", "Open positions + live PnL"],
+                    ["/account", "Account balances"],
+                    ["/history", "Recent trades"],
+                    ["/performance", "Win rate, Sharpe, drawdown"],
+                    ["/analytics", "Monthly + per-symbol stats"],
+                    ["/backtest", "Backtest a strategy"],
+                    ["/portfolio", "Portfolio risk metrics"],
                     ["/start", "Boot the autonomous Loop Agent"],
                     ["/stop", "Stop the Loop Agent"],
                     ["/pause", "Soft-pause the loop"],
                     ["/resume", "Resume the loop"],
-                    ["/status", "System status snapshot"],
-                    ["/config", "View or edit config"],
-                    ["/apikey", "Manage AI provider and Supermemory keys"],
-                    ["/mode", "Switch testnet / mainnet"],
-                    ["/model <name>", "Switch AI provider"],
-                    ["/memory", "Inspect stored memories"],
-                    ["/positions", "Open positions and PnL"],
-                    ["/orders", "Open orders"],
-                    ["/risk", "View or adjust risk parameters"],
+                    ["/loop", "Loop on / off"],
+                    ["/remote", "Telegram remote mode + pairing code"],
                     ["/clear", "Clear chat context"],
-                    ["/quit", "Exit"],
+                    ["/exit", "Exit"],
                   ].map(([c, d]) => (
                     <tr key={c} className="border-b border-border last:border-b-0">
                       <td className="px-5 py-3 font-mono text-[color:var(--electric-bright)] w-56">{c}</td>
@@ -143,6 +152,12 @@ function Docs() {
                 </tbody>
               </table>
             </div>
+          </Section>
+
+          <Section id="telegram" title="Telegram Remote">
+            <p>Pair your Telegram chat once, then monitor positions and trade in natural language from your phone. Only paired chat IDs are allowed.</p>
+            <CodeBlock code={`# In the TUI — enables remote mode and shows a one-time code\n/remote\n\n# In Telegram — open your bot and bind the chat\n/pair <code>\n\n# After pairing: all /commands work, plus plain-English chat`} lang="bash" />
+            <p>You can also enable Telegram during the <span className="font-mono">pacifica init</span> setup wizard. Pairing codes expire — run <span className="font-mono">/remote</span> again for a fresh one.</p>
           </Section>
 
           <Section id="risk" title="Risk & Security">

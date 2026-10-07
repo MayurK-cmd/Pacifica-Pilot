@@ -24,8 +24,8 @@ const cardData = [
   },
   {
     color: '#0c1116',
-    title: '9 trading tools',
-    description: 'Orders, positions, balances, market snapshots, regime, performance.',
+    title: '13 trading tools',
+    description: 'Orders, cancels, native TP/SL, positions, balances, snapshots, regime, performance.',
     label: 'Tools'
   },
   {

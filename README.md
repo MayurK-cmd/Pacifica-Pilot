@@ -29,7 +29,7 @@ pacifica start
 
 Type `/help` for commands, or just chat naturally.  
 `/start` boots the Loop Agent, `/stop` stops it.  
-`/config` to view/edit settings, `/apikey supermemory <key> [local|cloud]`.
+`/config` to view/edit settings, `/apikey` for keys, `/remote` for Telegram pairing.
 
 ### Keyboard Shortcuts
 
@@ -59,7 +59,9 @@ Textual TUI (3-panel)
 - **Agentic chat** -- Multi-turn tool loop: gathers data, reasons, then responds
 - **Autonomous loop agent** -- 24/7 AI-driven market monitoring and trading
 - **Live technical analysis** -- RSI, MACD, Bollinger Bands, funding, volume, market regime
-- **9 trading tools** -- place/close orders, market analysis, performance metrics, regime detection
+- **13 trading tools** -- place/close orders, cancel orders, native TP/SL, market analysis, performance metrics, regime detection
+- **Analytics commands** -- `/performance`, `/analytics`, `/portfolio`, `/backtest`, `/history` for stats without asking the AI
+- **Telegram remote** -- pair once with `/remote`, then monitor positions and chat with the agent from your phone
 - **Multi-provider AI** -- Anthropic, OpenAI, Google Gemini, OpenRouter (BYOK)
 - **Textual TUI** -- 3-panel layout with slash autocomplete, live sidebar, keyboard shortcuts
 - **Non-custodial** -- Your keys, your machine. Nothing leaves.
@@ -95,7 +97,19 @@ performance  -> "Daily: 3 trades, +$12.50, 67% win rate"
 
 ## Tools
 
-`place_order` · `close_position` · `close_all_positions` · `get_positions` · `get_account_balance` · `get_market_price` · `get_trade_history` · `get_performance_metrics` · `get_market_regime`
+`place_order` · `close_position` · `close_all_positions` · `cancel_order` · `cancel_all_orders` · `set_position_tpsl` · `get_positions` · `get_open_orders` · `get_account_balance` · `get_market_price` · `get_trade_history` · `get_performance_metrics` · `get_market_regime`
+
+`set_position_tpsl` attaches native exchange-side take-profit / stop-loss, so protection survives restarts.
+
+## Telegram Remote
+
+Enable during `pacifica init` or anytime with `/remote`. The TUI shows a one-time pairing code:
+
+```
+/remote          # enable + show pairing code
+```
+
+Open your bot on Telegram, send `/pair <code>`, and that chat is bound to your agent. After pairing you can check positions, review decisions, and trade in natural language from your phone. Only paired chat IDs are allowed.
 
 ## Security
 

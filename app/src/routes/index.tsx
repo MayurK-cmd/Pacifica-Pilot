@@ -20,6 +20,7 @@ import {
   Server,
   Repeat,
   Sparkles,
+  Send,
   Check,
   X,
 } from "lucide-react";
@@ -35,7 +36,7 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "PacificaPilot — AI trading agent with persistent memory" },
-      { name: "description", content: "Local-first AI trading agent for Pacifica perpetual futures. Multi-provider LLMs, Supermemory persistence, agentic tool loop, 9 trading tools — all in your terminal. MIT." },
+      { name: "description", content: "Local-first AI trading agent for Pacifica perpetual futures. Multi-provider LLMs, Supermemory persistence, agentic tool loop, 13 trading tools — all in your terminal. MIT." },
       { property: "og:title", content: "PacificaPilot — AI trading agent with persistent memory" },
       { property: "og:description", content: "The AI trading agent that actually learns from every trade. Local-first, BYOK, MIT." },
     ],
@@ -47,19 +48,24 @@ const features = [
   { icon: Brain, title: "Persistent memory", body: "Supermemory stores every trade, pattern, and preference. Said once, remembered forever — across sessions and models." },
   { icon: MessageSquare, title: "Agentic tool loop", body: "Claude Code-style multi-turn reasoning. The AI gathers data, calls tools, reasons step-by-step, then responds." },
   { icon: Repeat, title: "Autonomous loop agent", body: "24/7 market monitoring with AI-driven trading decisions. Every decision written to memory automatically." },
-  { icon: Wrench, title: "9 trading tools", body: "Place orders, close positions, check balances, run TA, detect market regime, pull performance metrics." },
+  { icon: Wrench, title: "13 trading tools", body: "Place and cancel orders, native TP/SL, check balances, run TA, detect market regime, pull performance metrics." },
   { icon: LineChart, title: "Live technical analysis", body: "RSI 5m/1h, MACD, Bollinger Bands, funding rates, volume signals, and regime detection wired into every prompt." },
   { icon: Cpu, title: "Multi-provider BYOK", body: "Anthropic, OpenAI, Google Gemini, or OpenRouter. Swap providers at runtime with /apikey. No lock-in." },
   { icon: ShieldAlert, title: "Human-in-the-loop", body: "Every order requires explicit yes/no. Dry-run by default. Testnet first. Nothing hits the exchange without you." },
   { icon: Lock, title: "Non-custodial & local", body: "Your keys stay on your machine. With local Supermemory mode, zero data ever leaves the box." },
   { icon: TerminalIcon, title: "Textual TUI", body: "Fixed 3-panel layout, slash autocomplete, live status sidebar, trade confirmation modals — not a debug REPL." },
+  { icon: Send, title: "Telegram remote", body: "Pair once with /remote, then monitor positions and trade in plain English from your phone." },
 ];
 
 const tools = [
   ["place_order", "Open LONG/SHORT positions (with confirmation)"],
   ["close_position", "Close a specific position"],
   ["close_all_positions", "Flatten the entire book (batch confirmation)"],
+  ["cancel_order", "Cancel one resting order by ID (with confirmation)"],
+  ["cancel_all_orders", "Cancel all resting orders, optionally per symbol"],
+  ["set_position_tpsl", "Native exchange-side take-profit / stop-loss"],
   ["get_positions", "View open positions with unrealized PnL"],
+  ["get_open_orders", "Resting limit/stop orders with prices and fill status"],
   ["get_account_balance", "Check USDC balance, equity, available capital"],
   ["get_market_price", "Full snapshot: price, RSI, MACD, Bollinger, volume, funding, regime"],
   ["get_trade_history", "Past trades with PnL, duration, entry/exit"],
@@ -161,7 +167,7 @@ function Hero() {
           <dl className="mt-8 flex flex-wrap gap-x-10 gap-y-4" aria-label="Project traction">
             {[
               { value: "300+", label: "PyPI downloads" },
-              { value: "9", label: "Trading tools" },
+              { value: "13", label: "Trading tools" },
             ].map((s) => (
               <div key={s.label}>
                 <dd className="font-mono text-2xl font-bold" aria-label={`${s.value} ${s.label}`}>
@@ -479,7 +485,7 @@ function ToolsSection() {
     <section className="mx-auto max-w-6xl px-6 py-20">
       <div className="max-w-2xl mb-12">
         <p className="text-xs font-mono uppercase tracking-[0.2em] text-primary mb-3">06 — Tools</p>
-        <h2 className="text-3xl md:text-4xl font-bold">9 tools at your command</h2>
+        <h2 className="text-3xl md:text-4xl font-bold">13 tools at your command</h2>
         <p className="mt-4 text-muted-foreground leading-relaxed">
           The AI decides which of these to call — you never have to remember function
           signatures. Trade actions always require confirmation.
